@@ -1,0 +1,717 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PestVyapar Complete Product Documentation</title>
+<style>
+@page { size:A4; margin:18mm 16mm 18mm 16mm; @bottom-right { content:"Page " counter(page); font:9px Arial; color:#64748b; } }
+*{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:10.5pt;line-height:1.5;margin:0}
+h1{font-size:20pt;color:#0f766e;margin:24px 0 10px;border-bottom:2px solid #99f6e4;padding-bottom:6px;page-break-after:avoid}
+h1.title{font-size:30pt;text-align:center;border:0;color:#134e4a;margin-top:80px;margin-bottom:24px}
+h2{font-size:15pt;color:#115e59;margin:20px 0 8px;page-break-after:avoid} h3{font-size:12pt;color:#0f766e;margin:14px 0 6px;page-break-after:avoid}
+p{margin:5px 0 8px;text-align:justify}.bullet{margin:4px 0 4px 18px;text-indent:-12px}.spacer{height:5px}
+table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:9pt;page-break-inside:auto} tr{page-break-inside:avoid} td{border:1px solid #cbd5e1;padding:6px;vertical-align:top} tr:first-child td{background:#0f766e;color:white;font-weight:bold}
+h1.title:after{content:"\A Product Specification â€¢ Workflows â€¢ Architecture â€¢ 32-Week Roadmap â€¢ Pros & Cons â€¢ Feature Recommendations\A Updated 27 August 2026";white-space:pre;display:block;font-size:12pt;line-height:2;color:#475569;font-weight:normal;margin-top:20px}
+</style></head><body><h1 class='title'>Full Technical Specification</h1>
+<p>Pest Control Business Management Platform</p>
+<p>CRM &#183; Contracts &#183; Scheduling &#183; Billing &#183; Accounting &#183; Field Operations &#183; Inventory &#183; HR</p>
+<p>Version 1.0  |  Compiled from the user&#39;s own account screens (10 Aug 2026)</p>
+<div class="spacer"></div>
+<h1>0. Document Control</h1>
+<p>This specification documents the module structure, screens, fields, and workflow of the pest-control business management platform as observed directly in the account owner&#39;s own screenshots (34 images captured 10 Aug 2026, covering Dashboards, CRM, Inspections, Quotations, Contracts, Scheduling, Field Operations, Invoices, Complaints, Customers, People &amp; Teams, Accounting, Inventory, and Reports). It is written as a build/rebuild specification for an engineering team — describing observed behavior, inferred data relationships, and a proposed technical implementation — rather than as an extraction of any vendor&#39;s backend source code, which was not accessed.</p>
+<p>Where the screenshots show empty/zero-state data (&quot;No leads yet&quot;, &quot;0 invoices&quot;, etc.), this document treats those as confirmation of the screen layout and field structure, not as evidence of feature absence.</p>
+<h1>1. Purpose &amp; Scope</h1>
+<p>Define a complete, engineering-ready specification for a multi-module pest-control field-service platform, with primary emphasis on the Billing/Invoicing module and everything that feeds into it (Leads → Inspections → Quotations → Contracts → Scheduling → Field Job Completion → Invoicing → Payments → GST Reporting).</p>
+<h3>1.1 Modules covered</h3>
+<p>Dashboards: CRM Dashboard, Pest Control Dashboard, Inventory Dashboard</p>
+<p>Sales &amp; CRM: Leads, Site Inspections, Quotations</p>
+<p>Contracts (AMC) and Service Calendar / Smart Scheduling</p>
+<p>Field Operations: technician assignment, tracking, job cards, certificates, audit inspections</p>
+<p>Billing: Invoices, Payment Reminders, Customer Outstandings</p>
+<p>People &amp; Teams: Customers, Technicians, Employees, Vendors, Attendance</p>
+<p>Accounting: Receipt Voucher, Payment Voucher, Expenses, Ledger</p>
+<p>Inventory: Stock Management (product master, inward/outward)</p>
+<p>Reports &amp; Analytics: GST Reports, Financial Reports, Business Reports</p>
+<p>Complaints management and WhatsApp Marketing</p>
+<h1>2. Information Architecture (as observed)</h1>
+<p>The left navigation groups modules into the following sections. This is the confirmed sidebar structure from the live account:</p>
+<table>
+<tr>
+<td>Section</td>
+<td>Modules</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>CRM Dashboard &#183; Pest Control Dashboard &#183; Inventory Dashboard &#183; Service Calendar &#183; Smart Scheduling</td>
+</tr>
+<tr>
+<td>Sales &amp; CRM</td>
+<td>Leads (All Leads, Follow-ups, Pipeline, Lead Reports, AI Call Assistant) &#183; Inspections &#183; Quotations &#183; Contracts &#183; Invoices &#183; Payment Reminders &#183; Customer Outstandings &#183; Complaints (New Complaint, Manage Complaints) &#183; WhatsApp Marketing</td>
+</tr>
+<tr>
+<td>People &amp; Teams</td>
+<td>Customers &#183; Technicians &#183; Employees &#183; Vendors &#183; Attendance Reports</td>
+</tr>
+<tr>
+<td>Field Operations</td>
+<td>Assign Services &#183; Assigned Services &#183; Track Technicians &#183; Geofence Activity &#183; Call History &#183; Field Reports &#183; Generate Certificates &#183; Audit Inspections</td>
+</tr>
+<tr>
+<td>Accounting</td>
+<td>Receipt Voucher &#183; Payment Voucher &#183; Expenses &#183; Ledger</td>
+</tr>
+<tr>
+<td>HR &amp; Payroll</td>
+<td>HR &amp; Payroll module (salary, leave, performance)</td>
+</tr>
+<tr>
+<td>Inventory</td>
+<td>Stock Management</td>
+</tr>
+<tr>
+<td>Reports &amp; Analytics</td>
+<td>GST Reports &#183; Financial Reports &#183; Business Reports</td>
+</tr>
+</table>
+<h1>3. End-to-End Workflow</h1>
+<p>The core business process observed across the CRM, Contract, Scheduling, and Billing screens:</p>
+<div class="spacer"></div>
+<h3>3.1 Narrative walk-through</h3>
+<p>A Lead enters the CRM with source (Website, Google Ads, Google Business Profile, WhatsApp, Call, Referral), urgency, and property type; leads pass through statuses New → Interested → Converted (or Not Interested / Cancelled), with system-flagged Overdue Follow-up and Stale (3+ Days) states.</p>
+<p>A Site Inspection can be recorded pre-quotation — &quot;Record a pre-quotation site survey, then build a quotation from it&quot; — capturing areas, technician, and date.</p>
+<p>A Quotation is built with a Lead/Existing-Customer picker, a separate Service Address, and a Pricing &amp; Tax block: GST vs No-GST toggle, CGST+SGST vs IGST toggle, GST % (default 18), and an Amount-GST-Exclusive/Inclusive switch. Services are added as line rows, each computing its own visits and total. Status flow: Draft → Pending Approval → Accepted/Rejected → Converted.</p>
+<p>An accepted Quotation converts into a Contract (AMC), which auto-generates a visit schedule surfaced on the Service Calendar (color-coded by status: Scheduled, Assigned, In Progress, Completed, Cancelled, Rescheduled) and in Smart Scheduling (List / Calendar / Board / Technicians views, filterable by technician, city, service, payment status).</p>
+<p>Field Operations assigns technicians to each visit (Assign Services screen: Customer &amp; Site → Service &amp; Assignment → Service Details, with GPS lat/long, access instructions, work start date/time).</p>
+<p>Technicians close the Job Card in the field (captured via the mobile app per the platform&#39;s stated feature set: chemicals used, before/after photos, digital signature); this is the billable trigger.</p>
+<p>Billing staff raise an Invoice from the Invoices module (list view shows Total Invoices, Invoiced amount, Paid Amount, Due Amount, filterable by Status/Payment/date range).</p>
+<p>Payments are recorded through Accounting → Receipt Voucher and reconciled against invoices; Payment Voucher and Expenses handle the outward side; the Ledger consolidates both.</p>
+<p>Customer Outstandings and the dashboard&#39;s Receivables Aging widget report 0–30 / 31–60 / 61–90 / 90+ day buckets; Payment Reminders push WhatsApp/email nudges on a configurable cadence.</p>
+<p>GST Reports, Financial Reports, and Business Reports (under Reports &amp; Analytics) consume the same invoice/payment data for statutory filing and management visibility.</p>
+<p>Complaints can optionally link to a Contract and are assigned to technicians independently of the billing flow, but roll into the Pest Control Dashboard&#39;s Complaint Breakdown and Performance &amp; Quality widgets.</p>
+<h1>4. Module-by-Module Functional Specification</h1>
+<h2>4.1 Dashboards</h2>
+<h3>4.1.1 CRM Dashboard</h3>
+<p>Quick Actions: New Lead, New Customer, New Contract, Lead Pipeline, Assign Service, Reminders, Manage Contracts, Reports</p>
+<p>Business Snapshot KPIs: Total Leads, Total Customers, Total Quotations, Total Contracts, Total Collected, Total Outstanding, Collection Efficiency, Active Contracts (each with a month-over-month delta)</p>
+<p>Lead Pipeline: Sales Funnel (Total Leads → Interested → Converted → Cancelled) with Conversion Rate, Pipeline Value, Avg Deal Value; Lead Sources donut (Website, Google Ads, Google Business Profile, Facebook, WhatsApp, Call, Referral)</p>
+<p>Today&#39;s Activity: Today&#39;s Lead Follow-ups table (Customer, Phone, City, Source, Urgency, Action); Leads by Property Type donut</p>
+<p>Payment Forecast: payments due today / this week / this month, and total overdue</p>
+<p>Cashflow &amp; Collections: Collections Trend (last 6 months, line/bar) and Receivables Aging (0-30/31-60/61-90/90+ bars)</p>
+<p>Customer Retention &amp; Churn: Renewal Rate gauge (Renewed/Churned/Total) and At-Risk (Churned) Customers table (Customer, Phone, Contract #, Expired On, Value, Days Since)</p>
+<p>Performance &amp; Quality: Technician Leaderboard and Complaint Breakdown</p>
+<p>Area-Wise Revenue: Revenue by City/Area with Cities/Areas/Total counters</p>
+<p>Recent Leads: Latest Leads table</p>
+<h3>4.1.2 Pest Control Dashboard</h3>
+<p>Quick Actions: New Contract, Assign Service, Field Reports, Track Technician, Manage Contracts, Outstanding Reports</p>
+<p>Owner Snapshot: Total Collected, Total Outstanding, Collection Efficiency %, Overdue 90+ Days, Active Contracts, Expiring in 30 Days, Open Complaints, Overdue Visits</p>
+<p>Service Progress by Customer: month-scoped, collapsible service-progress list</p>
+<p>Cashflow &amp; Collections: same Collections Trend / Receivables Aging pattern as CRM Dashboard, scoped to service data</p>
+<p>Top Overdue Customers table: Customer, Outstanding, 0-30/31-60/61-90/90+ Days, Invoices, with a &#39;View Full Report&#39; link</p>
+<p>Risk &amp; Renewals: Contracts Expiring Soon table plus Already Expired / Within 30 / 31-60 / 61-90 Days counters and Total Value at Risk</p>
+<p>Service Revenue Mix (chart), Operations Snapshot (Today&#39;s Services, Completed, In Progress, Pending, Completion Rate, Attendance Today), Service Volume by Type, Today&#39;s Attendance, New vs Renewal trend, Upcoming Service Queue</p>
+<h3>4.1.3 Inventory Dashboard</h3>
+<p>KPIs: Products, Stock Value, Low Stock, Out of Stock, Expiring, Brands</p>
+<p>Low Stock Alerts panel and Expiring/Expired Batches panel (each with a healthy-state checkmark when clear)</p>
+<p>Stock by Category and Recent Activity (transaction feed)</p>
+<p>Top-level actions: Products, Inward, Outward</p>
+<h2>4.2 Sales &amp; CRM</h2>
+<h3>4.2.1 Leads</h3>
+<p>Sub-pages: All Leads, Follow-ups, Pipeline, Lead Reports, AI Call Assistant</p>
+<p>All Leads filters: Lead Status, Assigned To, Created By, Follow-up From/To date range, free-text search; table columns Customer, Property, Status, Source, Follow-up, Assigned To, Location, Services, Actions</p>
+<p>Lead Status values: All Active Leads, New, Interested, Not Interested, Cancelled, Overdue Follow-up, Stale (3+ Days), Needs Details, Converted</p>
+<p>Follow-ups view: Overdue / Today / Tomorrow / This Week / Unscheduled / All Open counters, with assignee and urgency filters</p>
+<p>Pipeline: Kanban board (New Leads, Interested, Converted, Not Interested, Cancelled columns) with drag-to-update-status, filterable by Assigned To / Urgency / Source / Readiness; header KPIs mirror funnel counts plus Pipeline Value</p>
+<p>Lead Sources enum: Website, Google Ads, Google Business Profile, WhatsApp, Call, Referral</p>
+<p>Lead Reports: Overview / Source Analysis / Employee Performance / All Leads tabs; date-range + source + status + assignee filters; Export CSV</p>
+<h3>4.2.2 Inspections</h3>
+<p>Purpose per in-app copy: &quot;Record a pre-quotation site survey, then build a quotation from it&quot;</p>
+<p>List columns: Lead/Customer, Site, Date, Areas, Technician, Status, Actions; filter by status and free-text search on number/lead/customer</p>
+<h3>4.2.3 Quotations</h3>
+<p>List KPIs: Total, Pending Approval, Accepted, Rejected, Converted; filter by Created By; table columns Quotation No, Date, Customer, Phone, Valid Until, Amount, Created By, Approval, Status, Actions</p>
+<p>Create-quotation form sections: (1) Customer Source — Lead or Existing Customer toggle, Lead/Bill-To picker, separate Service Address; (2) Pricing &amp; Tax — GST/No-GST toggle, CGST+SGST/IGST toggle, GST % input (default 18), Amount GST Exclusive/Inclusive switch — these are quotation-level defaults applied to new service rows; (3) Services — itemized rows, each computing its own visit count and line total</p>
+<p>Header fields: auto-numbered Quotation Estimate ID (e.g. QT1), Quotation Date, Valid Until, Status (Draft, and the list-level states above)</p>
+<p>Actions: Save Draft, Save &amp; View, Back</p>
+<h3>4.2.4 Contracts</h3>
+<p>Represents the AMC generated from an accepted quotation; drives the auto-generated visit schedule consumed by Service Calendar and Smart Scheduling</p>
+<p>Referenced elsewhere as: Contract #, End Date, Value, Status (used in Contracts Expiring Soon, At-Risk Customers, and Complaints&#39; &#39;Link to Contract&#39; field)</p>
+<h3>4.2.5 Invoices (Billing — core module)</h3>
+<p>URL observed: /contracts/invoices/list — reinforcing that invoices are generated in the context of a contract, consistent with the job-to-invoice pipeline</p>
+<p>List header KPIs: Total Invoices, Invoiced (₹), Paid Amount (₹), Due Amount (₹)</p>
+<p>Filters: free-text Search (invoice, customer, property, contract), Status, Payment, Date From, Date To</p>
+<p>Table columns: Invoice, Customer, Total Amount, Paid Amount, Due Amount, Due In, Status, Action</p>
+<p>Primary action: Create Invoice</p>
+<p>Tax computation inherits the GST/No-GST and CGST+SGST/IGST logic established at the quotation/contract level, keeping the same company-level invoice-numbering behavior described in section 3</p>
+<h3>4.2.6 Payment Reminders</h3>
+<p>Dedicated module (sidebar item, sibling to Invoices and Customer Outstandings) driving the WhatsApp/email reminder cadence referenced in the dashboard&#39;s Payment Forecast and Cashflow widgets</p>
+<h3>4.2.7 Customer Outstandings</h3>
+<p>Dedicated reporting module feeding the same aging-bucket logic (0-30/31-60/61-90/90+) shown on both dashboards and the Top Overdue Customers table</p>
+<h3>4.2.8 Complaints</h3>
+<p>New Complaint form: Customer &amp; Property (Select Customer, Select Property, optional Link to Contract), Complaint Details (Type, Priority [default Normal], Subject/Title, Detailed Description, Reported By, Reported Via, Due Date), Assign Technicians panel, Save as Draft / Save &amp; Assign actions</p>
+<p>Manage Complaints: Open / In Progress / Resolved / Urgent counters; Quick Filters (All, Open, Assigned, In Progress, Resolved, Urgent); Customer/Technician/date-range filters; table columns Complaint, Customer, Type, Priority, Status, Technicians, Created, Actions</p>
+<h3>4.2.9 WhatsApp Marketing</h3>
+<p>Sidebar module for template-based bulk/marketing messaging, distinct from the transactional Payment Reminders flow</p>
+<h2>4.3 People &amp; Teams</h2>
+<h3>4.3.1 Customers</h3>
+<p>&quot;Customer Master — Create and manage customers, properties, and billing profiles&quot;</p>
+<p>KPIs: Total Customers, This Month (new), Contracts AMC, Total Paid, Total Outstanding, Total Opening</p>
+<p>Table columns: Name, Phone, Customer Type, Opening (balance), Total Outstanding, Active Contracts, City, State, GST, Properties, Actions</p>
+<p>Actions: WhatsApp Message, Bulk Import, New Customer; each customer carries a GST field and an Opening balance — i.e. customers can be onboarded with a pre-existing balance that seeds the outstanding ledger</p>
+<h3>4.3.2 Technicians</h3>
+<p>KPIs: Active Technicians, Jobs Done, Pending Jobs, On Hold</p>
+<p>Table columns: Name, Email, Contact, WhatsApp, Designation, App Access, Jobs Done, Pending, On Hold, Status, Actions; Import and Add Technician actions</p>
+<h3>4.3.3 Employees</h3>
+<p>KPIs: Total Employees, Technicians, Sales &amp; Marketing, Operations &amp; Others</p>
+<p>Table columns: Name, Permission Role, Contact, Email, App Access, Web Access, Status, Actions — confirms role-based access control is configured per employee with separate App vs Web access flags</p>
+<h3>4.3.4 Vendors</h3>
+<p>KPIs: Total Vendors, WhatsApp Ready, Email Available</p>
+<p>Table columns: Vendor, Phone, WhatsApp, Email, GST No., Actions — vendor GST captured for purchase-side GST reporting (GSTR-2)</p>
+<h3>4.3.5 Attendance Reports</h3>
+<p>KPIs: Today Present, Total Records, Present, Half Day, On Leave, Absent, Avg Hours</p>
+<p>Filters: From/To date, Staff Type, Staff Member, Status; table columns Date, Employee, Punch In, Punch Out, Hours, Status, Notes, Actions; Add Attendance and Export CSV actions</p>
+<h2>4.4 Field Operations</h2>
+<p>Sub-modules: Assign Services, Assigned Services, Track Technicians, Geofence Activity, Call History, Field Reports, Generate Certificates, Audit Inspections</p>
+<p>Assign Services form: (1) Customer &amp; Site — Select Customer (only customers with active contracts are listed), Contract picker (loads that contract&#39;s services/schedules), Site Address, Area/Locality, City, PIN; (2) Service &amp; Assignment — Service Schedules list filtered by All/Assigned/Scheduled/Completed (loaded from the selected customer&#39;s contracts), technician multi-assign by name/phone; (3) Service Details — Priority, Work Start Date/Time, Access Instructions, Latitude/Longitude, Instructions/Notes</p>
+<p>This confirms the Contract → Visit Schedule → Technician Assignment chain is enforced at the data layer (a customer must have an active contract before services can be assigned)</p>
+<h2>4.5 Accounting</h2>
+<p>Receipt Voucher — records money received from customers, allocated against invoices</p>
+<p>Payment Voucher — records money paid out (vendors, expenses settlement)</p>
+<p>Expenses — standalone expense entry, distinct from Payment Voucher, for operational cost tracking (chemicals, fuel, salaries, etc.)</p>
+<p>Ledger — consolidated view tying Sales (Invoices), Receipts, Payments, and Expenses into customer- and company-level running balances</p>
+<h2>4.6 HR &amp; Payroll</h2>
+<p>Sidebar module (sibling to Attendance Reports) for salary structures, payroll runs, leave management, and performance — attendance data is the direct input to payroll calculation</p>
+<h2>4.7 Inventory</h2>
+<p>Stock Management module underlying the Inventory Dashboard: Product master, Inward/Outward stock movement, low-stock and expiry alerts, stock-by-category breakdown</p>
+<h2>4.8 Reports &amp; Analytics</h2>
+<p>GST Reports — statutory GST output (GSTR-1/2, HSN summaries) sourced from Invoices and vendor Purchases</p>
+<p>Financial Reports — P&amp;L, cash flow, receivables, sourced from the Ledger</p>
+<p>Business Reports — operational analytics: service/customer revenue, retention, churn, technician performance</p>
+<h1>5. Status &amp; Enum Reference (as observed)</h1>
+<table>
+<tr>
+<td>Entity</td>
+<td>Observed status / enum values</td>
+</tr>
+<tr>
+<td>Lead</td>
+<td>New &#183; Interested &#183; Not Interested &#183; Cancelled &#183; Overdue Follow-up &#183; Stale (3+ Days) &#183; Needs Details &#183; Converted</td>
+</tr>
+<tr>
+<td>Lead Source</td>
+<td>Website &#183; Google Ads &#183; Google Business Profile &#183; WhatsApp &#183; Call &#183; Referral</td>
+</tr>
+<tr>
+<td>Quotation</td>
+<td>Draft &#183; Pending Approval &#183; Accepted &#183; Rejected &#183; Converted</td>
+</tr>
+<tr>
+<td>Service / Visit</td>
+<td>Scheduled &#183; Assigned &#183; In Progress &#183; Completed &#183; Cancelled &#183; Rescheduled</td>
+</tr>
+<tr>
+<td>Invoice list filter</td>
+<td>Status (paid state) and Payment (payment state) are separate filter dimensions; Due Amount and Due In drive an implicit overdue state</td>
+</tr>
+<tr>
+<td>Complaint</td>
+<td>Open &#183; Assigned &#183; In Progress &#183; Resolved &#183; Urgent (priority) &#183; Normal (default priority)</td>
+</tr>
+<tr>
+<td>Attendance</td>
+<td>Present &#183; Half Day &#183; On Leave &#183; Absent</td>
+</tr>
+<tr>
+<td>Contract risk buckets</td>
+<td>Already Expired &#183; Within 30 Days &#183; 31–60 Days &#183; 61–90 Days</td>
+</tr>
+<tr>
+<td>Receivables ageing</td>
+<td>0–30 &#183; 31–60 &#183; 61–90 &#183; 90+ Days</td>
+</tr>
+</table>
+<h1>6. Data Model</h1>
+<p>Entities and relationships inferred from the screens above. A production build would add standard audit columns (created_by, created_at, updated_at, soft-delete) on every table.</p>
+<table>
+<tr>
+<td>Entity</td>
+<td>Key fields (observed / inferred)</td>
+<td>Relationships</td>
+</tr>
+<tr>
+<td>Lead</td>
+<td>id, customer_name, phone, property_type, source, urgency, status, assigned_to, follow_up_date, created_by</td>
+<td>0/1—1 Customer (on conversion), 1—N Inspections, 1—N Quotations</td>
+</tr>
+<tr>
+<td>SiteInspection</td>
+<td>id, lead_id/customer_id, site_id, date, areas[], technician_id, status</td>
+<td>N—1 Lead/Customer, 0/1—1 Quotation</td>
+</tr>
+<tr>
+<td>Quotation</td>
+<td>id, quotation_no, lead_id/customer_id, service_address, quotation_date, valid_until, gst_treatment (GST/No-GST), tax_type (CGST+SGST/IGST), gst_percent, amount_type (inclusive/exclusive), status, created_by, approval_status</td>
+<td>1—N QuotationLine, 0/1—1 Contract</td>
+</tr>
+<tr>
+<td>QuotationLine</td>
+<td>id, quotation_id, service_id, visits, rate, total</td>
+<td>N—1 Quotation</td>
+</tr>
+<tr>
+<td>Contract (AMC)</td>
+<td>id, contract_no, customer_id, quotation_id, start_date, end_date, value, status</td>
+<td>1—N Visit, 1—N Site, 1—N Invoice, 1—N Complaint (optional link)</td>
+</tr>
+<tr>
+<td>Site/Property</td>
+<td>id, customer_id, address, area, city, pin, latitude, longitude</td>
+<td>N—1 Customer, 1—N Visit</td>
+</tr>
+<tr>
+<td>Visit / JobCard</td>
+<td>id, contract_id, site_id, technician_id[], scheduled_date, work_start_time, priority, access_instructions, status, chemicals_used[], photos[], signature_url</td>
+<td>N—1 Contract, N—1 Site, N—M Technician, 0/1—1 InvoiceLine</td>
+</tr>
+<tr>
+<td>Customer</td>
+<td>id, name, phone, customer_type, gstin, opening_balance, city, state, total_outstanding</td>
+<td>1—N Contract, 1—N Invoice, 1—N Site, 1—1 Ledger</td>
+</tr>
+<tr>
+<td>Technician</td>
+<td>id, name, email, contact, whatsapp, designation, app_access, status</td>
+<td>N—M Visit, 1—N AttendanceRecord</td>
+</tr>
+<tr>
+<td>Employee</td>
+<td>id, name, permission_role, contact, email, app_access, web_access, status</td>
+<td>1—N AttendanceRecord (if technician-type)</td>
+</tr>
+<tr>
+<td>Vendor</td>
+<td>id, name, phone, whatsapp, email, gstin</td>
+<td>1—N Purchase/Expense</td>
+</tr>
+<tr>
+<td>AttendanceRecord</td>
+<td>id, employee_id, date, punch_in, punch_out, hours, status, notes</td>
+<td>N—1 Employee</td>
+</tr>
+<tr>
+<td>Invoice</td>
+<td>id, invoice_no, contract_id, customer_id, company_id, invoice_date, due_date, gst_treatment, tax_type, total_amount, paid_amount, due_amount, status</td>
+<td>N—1 Contract, N—1 Customer, 1—N InvoiceLine, 1—N ReceiptAllocation</td>
+</tr>
+<tr>
+<td>InvoiceLine</td>
+<td>id, invoice_id, job_card_id (nullable), service_id, hsn_sac_code, qty, rate, cgst, sgst, igst, line_total</td>
+<td>N—1 Invoice, 0/1—1 JobCard</td>
+</tr>
+<tr>
+<td>ReceiptVoucher</td>
+<td>id, customer_id, amount, method, received_at, reference_no</td>
+<td>1—N ReceiptAllocation</td>
+</tr>
+<tr>
+<td>ReceiptAllocation</td>
+<td>id, receipt_id, invoice_id, allocated_amount</td>
+<td>N—1 ReceiptVoucher, N—1 Invoice</td>
+</tr>
+<tr>
+<td>PaymentVoucher</td>
+<td>id, vendor_id/payee, amount, method, paid_at, reference_no</td>
+<td>N—1 Vendor (optional)</td>
+</tr>
+<tr>
+<td>Expense</td>
+<td>id, category, amount, date, notes</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Ledger entry</td>
+<td>id, party_id (customer/vendor), entry_type (invoice/receipt/payment/expense/journal), amount, balance_after</td>
+<td>N—1 Customer or Vendor</td>
+</tr>
+<tr>
+<td>Reminder</td>
+<td>id, invoice_id, channel (WhatsApp/Email), trigger_type, sent_at, delivery_status</td>
+<td>N—1 Invoice</td>
+</tr>
+<tr>
+<td>Complaint</td>
+<td>id, customer_id, property_id, contract_id (nullable), type, priority, subject, description, reported_by, reported_via, due_date, status, technician_ids[]</td>
+<td>N—1 Customer, 0/1—1 Contract, N—M Technician</td>
+</tr>
+<tr>
+<td>Product (Inventory)</td>
+<td>id, name, category, brand, unit, stock_qty, reorder_level, expiry_date</td>
+<td>1—N StockMovement, 1—N JobCard (chemicals_used)</td>
+</tr>
+<tr>
+<td>StockMovement</td>
+<td>id, product_id, direction (inward/outward), qty, date, reference</td>
+<td>N—1 Product</td>
+</tr>
+</table>
+<h1>7. Proposed API Surface</h1>
+<p>Illustrative REST endpoints for a new implementation, organized by module.</p>
+<table>
+<tr>
+<td>Method &amp; Path</td>
+<td>Purpose</td>
+</tr>
+<tr>
+<td>POST /api/v1/leads</td>
+<td>Create lead (source, urgency, property_type)</td>
+</tr>
+<tr>
+<td>PATCH /api/v1/leads/{id}/status</td>
+<td>Move lead through pipeline stages</td>
+</tr>
+<tr>
+<td>POST /api/v1/inspections</td>
+<td>Record a site inspection against a lead/customer</td>
+</tr>
+<tr>
+<td>POST /api/v1/quotations</td>
+<td>Create quotation with GST config and service lines</td>
+</tr>
+<tr>
+<td>POST /api/v1/quotations/{id}/convert</td>
+<td>Convert accepted quotation into a Contract + visit schedule</td>
+</tr>
+<tr>
+<td>GET /api/v1/scheduling/services?date=&amp;technician=&amp;status=</td>
+<td>Smart Scheduling list/board/calendar data</td>
+</tr>
+<tr>
+<td>POST /api/v1/field/assign</td>
+<td>Assign technician(s) to a contract&#39;s service visits</td>
+</tr>
+<tr>
+<td>PATCH /api/v1/job-cards/{id}/complete</td>
+<td>Technician closes job card (chemicals, photos, signature)</td>
+</tr>
+<tr>
+<td>GET /api/v1/job-cards?status=billable&amp;customer_id=</td>
+<td>List billable job cards</td>
+</tr>
+<tr>
+<td>POST /api/v1/invoices</td>
+<td>Create invoice from job_card_ids or contract_id</td>
+</tr>
+<tr>
+<td>GET /api/v1/invoices?status=&amp;payment=&amp;date_from=&amp;date_to=</td>
+<td>Invoice list with filters matching the Invoices screen</td>
+</tr>
+<tr>
+<td>POST /api/v1/receipt-vouchers</td>
+<td>Record a customer receipt and allocate to invoice(s)</td>
+</tr>
+<tr>
+<td>POST /api/v1/payment-vouchers</td>
+<td>Record an outward payment</td>
+</tr>
+<tr>
+<td>POST /api/v1/expenses</td>
+<td>Record an operational expense</td>
+</tr>
+<tr>
+<td>GET /api/v1/customers/{id}/outstanding</td>
+<td>Outstanding balance and ageing buckets</td>
+</tr>
+<tr>
+<td>GET /api/v1/reports/gst?type=gstr1|gstr2&amp;period=</td>
+<td>GST report export</td>
+</tr>
+<tr>
+<td>GET /api/v1/reports/financial</td>
+<td>P&amp;L / cash flow / receivables</td>
+</tr>
+<tr>
+<td>GET /api/v1/reports/business</td>
+<td>Revenue, retention, churn, technician performance</td>
+</tr>
+<tr>
+<td>POST /api/v1/complaints</td>
+<td>Register complaint, optionally linked to a contract</td>
+</tr>
+<tr>
+<td>POST /api/v1/reminders/run</td>
+<td>Trigger scheduled WhatsApp/email reminder batch</td>
+</tr>
+<tr>
+<td>GET /api/v1/attendance?from=&amp;to=&amp;staff_type=</td>
+<td>Attendance records for payroll and dashboards</td>
+</tr>
+<tr>
+<td>GET /api/v1/inventory/stock?status=low|expiring</td>
+<td>Stock alerts feeding the Inventory Dashboard</td>
+</tr>
+</table>
+<p>All endpoints require company-scoped auth; RBAC should mirror the observed per-employee App Access / Web Access flags.</p>
+<h1>8. Non-Functional Requirements</h1>
+<table>
+<tr>
+<td>Category</td>
+<td>Requirement</td>
+</tr>
+<tr>
+<td>Compliance</td>
+<td>GST invoice fields (GSTIN, HSN/SAC, tax breakup, sequential number, place of supply) mandatory on every GST-treatment invoice; No-GST companies use a separate numbering series.</td>
+</tr>
+<tr>
+<td>Data integrity</td>
+<td>A customer must have an active Contract before services can be assigned (observed constraint on the Assign Services screen) — enforce equivalently at the API layer.</td>
+</tr>
+<tr>
+<td>Auditability</td>
+<td>Invoices are never hard-deleted; status changes and voids are logged.</td>
+</tr>
+<tr>
+<td>Access control</td>
+<td>Per-employee App Access and Web Access flags, plus a Permission Role, as seen on the Employees screen.</td>
+</tr>
+<tr>
+<td>Offline support</td>
+<td>Technician job-card completion should queue offline and sync, consistent with field-app expectations.</td>
+</tr>
+<tr>
+<td>Reporting consistency</td>
+<td>Dashboard KPIs (Total Outstanding, Collection Efficiency, Receivables Aging) must derive from the same ledger data as the Reports &amp; Analytics module — no parallel calculation paths.</td>
+</tr>
+<tr>
+<td>Localization</td>
+<td>₹  (INR) formatting, dd-mm-yyyy date inputs (as seen throughout), Indian state list for place-of-supply logic.</td>
+</tr>
+</table>
+<h1>9. Appendix — Screens Reviewed</h1>
+<p>Source: 34 screenshots of the user&#39;s own PestVyapar-style account, supplied 10 Aug 2026. Pages observed:</p>
+<p>/dashboard — CRM Dashboard (full scroll)</p>
+<p>/pestdashboard — Pest Control Dashboard (full scroll)</p>
+<p>/inventory/dashboard — Inventory Dashboard</p>
+<p>/calender — Service Calendar</p>
+<p>/scheduling/smart — Smart Scheduling</p>
+<p>/crm/leads, /crm/lead-followups, /crm/lead-pipeline, /crm/lead-reports — Leads module</p>
+<p>/site-inspections — Inspections</p>
+<p>/crm/quotations, /crm/quotation/create — Quotations</p>
+<p>/contracts/invoices/list — Invoices</p>
+<p>/complaints/create, /complaints/manage — Complaints</p>
+<p>/customers — Customer Master</p>
+<p>/pestcontrol/technicians — Technicians</p>
+<p>/employees — Employees</p>
+<p>/vendors — Vendors</p>
+<p>/attendance — Attendance Reports (with sidebar exposing Field Operations, Accounting, HR &amp; Payroll, Inventory, Reports &amp; Analytics sections)</p>
+<p>/pestcontrol/assign — Assign Services (Field Operations)</p>
+<p>No login credentials, admin actions, or write operations were performed by the assistant; all information above was read directly from the supplied images.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>10. Current Implementation Assessment</p>
+
+<p>This section reconciles the intended PestVyapar product with the implementation present in the Tech-house-pest-control workspace as reviewed on 26 August 2026.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>Implemented in the current prototype</p>
+
+<div class='bullet'>• React 19 and Vite single-page interface with ten operational views: Dashboard, CRM, Lead Pipeline, Service Calendar, Quotations, Invoices, General Ledger, Inventory, Complaints, and People/Attendance.</div>
+<div class='bullet'>• Express and MongoDB/Mongoose API covering leads, customers, quotations, contracts, visits, invoices, receipts, expenses, ledgers, products, stock movements, technicians, employees, vendors, attendance, and complaints.</div>
+<div class='bullet'>• Lead status movement and conversion into a customer record.</div>
+<div class='bullet'>• Quotation creation with GST treatment, inclusive/exclusive pricing, service rates, validity dates, and visit counts.</div>
+<div class='bullet'>• Quotation-to-AMC conversion that creates a contract and recurring visit records.</div>
+<div class='bullet'>• Technician job completion with chemical consumption, signature evidence, inventory deduction, and stock movement logging.</div>
+<div class='bullet'>• Visit-linked invoicing, GST calculations, customer receivables, FIFO payment allocation, and general-ledger entries.</div>
+<div class='bullet'>• Seeded demonstration data and responsive dashboard summaries.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>Important gaps before production</p>
+
+<div class='bullet'>• No authentication, password management, session handling, tenant isolation, or enforced role-based authorization.</div>
+<div class='bullet'>• No automated test suite, CI/CD pipeline, API documentation, schema migrations, monitoring, backup verification, or disaster-recovery procedure.</div>
+<div class='bullet'>• No real technician mobile application, offline synchronization, push notifications, GPS collection, route optimization, photo upload storage, or biometric attendance.</div>
+<div class='bullet'>• No payment gateway, WhatsApp Business API, email/SMS provider, GST/e-invoice integration, maps provider, or accounting export integration.</div>
+<div class='bullet'>• Accounting is a simplified operational ledger, not yet a fully reconciled double-entry accounting and statutory compliance system.</div>
+<div class='bullet'>• Several displayed values and defaults are demonstration assumptions, including fixed visit billing, default technician assignment, invoice numbering, and seeded dates.</div>
+<div class='bullet'>• The seed endpoint deletes collections and must be disabled or tightly restricted outside development.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>11. User Roles and Responsibilities</p>
+
+<div class='bullet'>• Owner/Super Admin: company setup, branch visibility, subscriptions, permissions, financial overview, audit access, and strategic reports.</div>
+<div class='bullet'>• Branch Admin/Operations Manager: scheduling, capacity management, contracts, complaints, inventory coordination, and branch reporting.</div>
+<div class='bullet'>• Sales Executive: lead capture, follow-ups, inspections, quotations, conversion, and renewal opportunities.</div>
+<div class='bullet'>• Dispatcher/Scheduler: calendar management, technician assignment, route sequencing, rescheduling, and exception handling.</div>
+<div class='bullet'>• Technician: attendance, assigned jobs, navigation, check-in/out, checklist, materials, photos, notes, signature, and completion.</div>
+<div class='bullet'>• Accountant: invoices, credit/debit notes, receipts, purchases, expenses, reconciliation, GST reports, and receivables.</div>
+<div class='bullet'>• Storekeeper: product batches, inward/outward stock, technician issue/return, expiry control, and physical adjustments.</div>
+<div class='bullet'>• HR Manager: employee records, attendance, leave, payroll inputs, performance, and compliance documents.</div>
+<div class='bullet'>• Customer/Client Contact: service requests, appointment confirmation, reports, invoices, payments, complaints, and feedback.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>12. Detailed Operational Workflows</p>
+
+<div class="spacer"></div>
+<p>12.1 Lead-to-Contract</p>
+
+<p>1. Capture inquiry from web, phone, referral, campaign, import, or WhatsApp. 2. Validate contact details and detect duplicates. 3. Assign owner, urgency, pest type, property, and follow-up SLA. 4. Conduct remote qualification or site inspection. 5. Record infestation, measurements, risks, images, recommended treatment, and chemical plan. 6. Generate a versioned quotation with taxes, terms, visit frequency, exclusions, and validity. 7. Send through email/WhatsApp and record delivery. 8. Capture approval, rejection, negotiation, or expiry. 9. Convert approval into customer/site, AMC or one-time contract, billing plan, and service schedule.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>12.2 Contract-to-Service</p>
+
+<p>1. Generate visits from service frequency and blackout rules. 2. Validate technician skill, certification, shift, branch, stock, travel time, and capacity. 3. Assign and notify technician and customer. 4. Technician checks in with time and GPS evidence. 5. Complete safety checklist, observations, treatment, chemical batch/quantity, photos, recommendations, and customer signature. 6. Capture exceptions such as no access, customer unavailable, unsafe site, revisit required, or partial completion. 7. Supervisor reviews exceptions and closes or reschedules the visit. 8. Create service report/certificate and notify stakeholders.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>12.3 Service-to-Cash</p>
+
+<p>1. Determine invoice trigger: advance, milestone, visit, monthly, or contract completion. 2. Build tax-compliant invoice from approved contract and completed work. 3. Apply GST place-of-supply rules, discounts, TDS, credit notes, and rounding. 4. Deliver invoice with payment link. 5. Run reminder cadence based on due date and customer preferences. 6. Record receipt and allocate it to invoices. 7. Reconcile gateway/bank transactions and resolve short or excess payments. 8. Update customer ledger, aging, collection forecast, and branch revenue.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>12.4 Inventory-to-Consumption</p>
+
+<p>1. Maintain product, chemical, unit, batch, expiry, safety data, supplier, and reorder settings. 2. Raise purchase request/order and record goods receipt. 3. Issue material to technician or vehicle. 4. Record actual job consumption by batch. 5. Return unused stock and quarantine damaged/expired stock. 6. Reconcile book versus physical stock. 7. Alert on low stock, unusual usage, expiry, and restricted chemicals. 8. Calculate job-level material cost and margin.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>12.5 Complaint-to-Resolution</p>
+
+<p>1. Log complaint against customer, property, contract, and prior visit. 2. Classify severity, recurrence, safety risk, warranty coverage, and SLA. 3. Assign investigation or revisit. 4. Capture root cause, corrective action, evidence, and consumed material. 5. Obtain customer acknowledgement and satisfaction score. 6. Escalate overdue or repeated cases. 7. Feed patterns into technician coaching, pest trends, and service-design improvement.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>13. Recommended Technical Architecture</p>
+
+<div class='bullet'>• Frontend: modular React application with TypeScript, routing, accessible component library, query caching, validation, error boundaries, and role-aware navigation.</div>
+<div class='bullet'>• Backend: versioned REST API organized by domain services; request validation; centralized errors; idempotency for payments/webhooks; transaction boundaries for stock, invoices, and receipts.</div>
+<div class='bullet'>• Data: MongoDB may remain suitable for operational documents, but accounting entries should use immutable journal rules and transactions; add indexes, tenantId and branchId to every scoped record.</div>
+<div class='bullet'>• Mobile: React Native or Flutter technician app with encrypted offline queue, conflict rules, background location consent, media compression, and resumable upload.</div>
+<div class='bullet'>• Infrastructure: managed database, object storage for media/documents, queue workers, cache, secrets manager, CDN/WAF, centralized logs, metrics, alerts, and tested backups.</div>
+<div class='bullet'>• Integrations: provider adapters for WhatsApp, email/SMS, maps, payment gateways, GST/e-invoicing, and exports to common accounting platforms.</div>
+<div class='bullet'>• Security: MFA for privileged roles, short-lived sessions, rate limits, audit trail, secure headers, encryption, malware scanning for uploads, field-level access, and periodic penetration testing.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>14. Step-by-Step Development Roadmap and Timeline</p>
+
+<p>Planning assumption: one product manager/business analyst, one UX designer, two frontend engineers, two backend engineers, one mobile engineer from Phase 4, and one QA/automation engineer. With a smaller team, extend the schedule proportionally. Target: production-ready core in 24 weeks and advanced optimization through week 32.</p>
+<div class="spacer"></div>
+<p>Phase 0 &#226;€” Discovery and control | Weeks 1&#226;€“2</p>
+<p>Confirm personas, workflows, compliance needs, tenant/branch model, KPIs, acceptance criteria, backlog, risk register, environments, and definition of done.</p>
+<div class="spacer"></div>
+<p>Phase 1 &#226;€” Platform foundation | Weeks 3&#226;€“5</p>
+<p>TypeScript structure, design system, authentication, tenant isolation, roles/permissions, audit log, configuration, API conventions, validation, CI/CD, test framework, observability, backups, and seeded non-destructive demo environment.</p>
+<div class="spacer"></div>
+<p>Phase 2 &#226;€” CRM and sales | Weeks 6&#226;€“9</p>
+<p>Leads, duplicate detection, assignment, activities, inspections, media, quotations, versions, approvals, customer/sites, imports/exports, templates, and notifications.</p>
+<div class="spacer"></div>
+<p>Phase 3 &#226;€” Contracts and dispatch | Weeks 10&#226;€“13</p>
+<p>One-time/AMC contracts, recurrence engine, calendar, technician skills/capacity, assignment, rescheduling, exception reasons, SLA alerts, and operational dashboards.</p>
+<div class="spacer"></div>
+<p>Phase 4 &#226;€” Technician mobile MVP | Weeks 14&#226;€“17</p>
+<p>Secure login, offline jobs, check-in/out, GPS consent, checklist, photos, materials, signatures, service report, sync conflict handling, push notifications, and device testing.</p>
+<div class="spacer"></div>
+<p>Phase 5 &#226;€” Billing and collections | Weeks 18&#226;€“21</p>
+<p>Invoice schedules, GST rules, receipts, allocations, credit/debit notes, payment links, reminders, reconciliation, aging, immutable journal controls, exports, and accountant UAT.</p>
+<div class="spacer"></div>
+<p>Phase 6 &#226;€” Inventory, complaints and HR | Weeks 22&#226;€“24</p>
+<p>Batch/expiry stock, purchasing, technician issue/return, complaint SLA, root cause, attendance and basic leave; complete end-to-end regression and migration rehearsal.</p>
+<div class="spacer"></div>
+<p>Phase 7 &#226;€” Pilot and production launch | Weeks 25&#226;€“27</p>
+<p>Security review, performance/load tests, accessibility, penetration test fixes, pilot branches, training, support runbook, rollback plan, migration, launch, and hypercare.</p>
+<div class="spacer"></div>
+<p>Phase 8 &#226;€” Growth and intelligence | Weeks 28&#226;€“32</p>
+<p>Route optimization, customer portal, advanced profitability, pest heatmaps, forecasting, AI-assisted inspection, churn scoring, public APIs/webhooks, and integration marketplace.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>15. Testing, Release, and Acceptance Strategy</p>
+
+<div class='bullet'>• Unit tests for pricing, GST, recurrence, allocations, stock calculations, permissions, and status transitions.</div>
+<div class='bullet'>• API integration tests for normal, validation, authorization, concurrency, duplicate webhook, and rollback cases.</div>
+<div class='bullet'>• End-to-end tests for the five critical workflows in Section 12 across owner, sales, dispatcher, technician, and accountant roles.</div>
+<div class='bullet'>• Mobile tests covering offline mode, poor network, GPS denial, interrupted upload, device clock differences, and sync conflicts.</div>
+<div class='bullet'>• Security tests aligned with OWASP ASVS/API Top 10; dependency scanning, secrets scanning, upload validation, and tenant-isolation tests.</div>
+<div class='bullet'>• Performance targets: dashboard interaction under two seconds for normal loads, API p95 under 500 ms for common reads, background exports for large reports, and measured mobile sync time.</div>
+<div class='bullet'>• Release gates: zero critical/high unresolved security issues; restore test passed; financial reconciliation passed; pilot sign-off; monitoring and rollback validated.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>16. Pros and Cons</p>
+
+<div class="spacer"></div>
+<p>Pros</p>
+
+<div class='bullet'>• Strong industry fit: sales, AMC operations, field evidence, chemicals, billing, and renewals are connected in one domain model.</div>
+<div class='bullet'>• The prototype already demonstrates the core lead-to-cash story and cross-module automation.</div>
+<div class='bullet'>• GST-aware billing, recurring visits, inventory deduction, complaints, and attendance create more value than a generic CRM alone.</div>
+<div class='bullet'>• Unlimited-user positioning can encourage whole-team adoption and reduce spreadsheet fragmentation.</div>
+<div class='bullet'>• A unified dataset enables customer profitability, technician productivity, renewal, and pest-trend insights.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>Cons and risks</p>
+
+<div class='bullet'>• The current prototype is not production-ready because security, tenant isolation, tests, monitoring, and operational controls are absent.</div>
+<div class='bullet'>• The proposed scope is ERP-sized; attempting every module simultaneously creates schedule, quality, and accounting-compliance risk.</div>
+<div class='bullet'>• Field reliability depends on a genuine offline-first mobile experience, robust media synchronization, location permissions, and device support.</div>
+<div class='bullet'>• Accounting, GST, payroll, AI audit, and routing claims require specialist validation and ongoing regulatory/provider maintenance.</div>
+<div class='bullet'>• Large all-in-one navigation can overwhelm small operators unless onboarding, presets, progressive disclosure, and role-specific workspaces are provided.</div>
+<div class='bullet'>• WhatsApp, maps, storage, messaging, and payment services introduce usage costs that may conflict with a very low flat subscription price.</div>
+<div class='bullet'>• Unlimited users without tenant quotas and abuse controls can create unpredictable infrastructure and support costs.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>17. Additional Features That Would Add the Most Value</p>
+
+<div class="spacer"></div>
+<p>Priority 1 &#226;€” Launch-critical value</p>
+
+<div class='bullet'>• Customer portal with appointment confirmation/rescheduling, reports, invoices, payments, contract status, complaint submission, and service feedback.</div>
+<div class='bullet'>• Offline-first technician application with background sync, route view, proof of service, chemical batch capture, safety checklist, and supervisor exception queue.</div>
+<div class='bullet'>• Automated renewal pipeline with risk score, recommended offer, task cadence, approval controls, and forecast.</div>
+<div class='bullet'>• Real payment links and reconciliation for UPI/cards/net banking, including webhook retry and duplicate protection.</div>
+<div class='bullet'>• Granular roles, branch/territory access, approval limits, audit history, and maker-checker controls for finance and stock.</div>
+<div class='bullet'>• Configurable templates for quotation, contract, invoice, certificate, inspection, service report, WhatsApp, email, and multilingual output.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>Priority 2 &#226;€” Operational differentiation</p>
+
+<div class='bullet'>• Skill-, capacity-, geography-, SLA-, and stock-aware auto-dispatch with route optimization and travel-time warnings.</div>
+<div class='bullet'>• Pest heatmaps and recurrence analysis by site/zone, pest, treatment, chemical, weather period, and technician.</div>
+<div class='bullet'>• QR codes at customer sites for check-in, asset/bait-station scanning, service history, and tamper-resistant visit evidence.</div>
+<div class='bullet'>• Bait-station and device register with floor-plan position, readings, trends, missed-point alerts, and compliance report.</div>
+<div class='bullet'>• Chemical safety library with SDS documents, regulatory status, dilution calculator, PPE prompts, restricted-use approvals, and exposure/incident log.</div>
+<div class='bullet'>• Technician vehicle/kit inventory, issue/return, wastage thresholds, batch traceability, and job-cost variance.</div>
+<div class='bullet'>• Commercial customer hierarchy for head office, properties, buildings, floors, zones, contacts, purchase orders, and consolidated billing.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>Priority 3 &#226;€” Growth and intelligence</p>
+
+<div class='bullet'>• AI-assisted inspection that structures voice notes/photos into findings and a draft treatment plan, with mandatory human approval and confidence indicators.</div>
+<div class='bullet'>• Profitability by customer, contract, service, branch, technician, and route using labour, travel, chemical, revisit, discount, and acquisition cost.</div>
+<div class='bullet'>• Demand, staffing, stock, collection, renewal, and churn forecasting with explainable drivers.</div>
+<div class='bullet'>• Public API, webhooks, Zapier-style automation, SSO, accounting exports, and integration marketplace.</div>
+<div class='bullet'>• Referral, review, loyalty, cross-sell, and seasonal campaign automation based on service and pest history.</div>
+<div class='bullet'>• White-label customer portal and branded documents for franchise or multi-brand operators.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>18. Product Metrics and Governance</p>
+
+<div class='bullet'>• Acquisition and sales: lead response time, qualification rate, quotation turnaround, win rate, average contract value, and source ROI.</div>
+<div class='bullet'>• Operations: on-time arrival, first-time completion, jobs per technician/day, travel ratio, utilization, reschedule/no-access rate, and SLA breaches.</div>
+<div class='bullet'>• Quality: complaint rate, recurrence within warranty, revisit rate, evidence completeness, customer satisfaction, and technician safety incidents.</div>
+<div class='bullet'>• Finance: invoice cycle time, DSO, collection rate, aging, gross margin, unallocated cash, credit-note rate, and branch profitability.</div>
+<div class='bullet'>• Inventory: consumption variance, stockout rate, expiry loss, technician return variance, and batch traceability completeness.</div>
+<div class='bullet'>• Product: activation time, weekly active users by role, workflow completion, notification delivery, sync failures, support tickets, retention, and churn.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>19. Key Risks and Mitigations</p>
+
+<div class='bullet'>• Scope expansion &#226;€” establish an MVP boundary, quarterly roadmap, change-control process, and feature flags.</div>
+<div class='bullet'>• Financial or tax errors &#226;€” engage a qualified accountant, maintain test fixtures, immutable audit entries, approval workflows, and reconciliation reports.</div>
+<div class='bullet'>• Tenant data leakage &#226;€” enforce tenant scope in middleware/repository layers and continuously test cross-tenant access.</div>
+<div class='bullet'>• Field sync data loss &#226;€” use local durable storage, operation IDs, retries, conflict policy, upload resumability, and visible sync status.</div>
+<div class='bullet'>• Location/privacy concerns &#226;€” obtain explicit consent, minimize retention, provide purpose disclosure and role-controlled access.</div>
+<div class='bullet'>• Third-party outages/costs &#226;€” use adapters, queues, retries, delivery logs, quotas, fallback channels, and cost dashboards.</div>
+<div class='bullet'>• Unsafe or unverified AI output &#226;€” keep AI assistive, cite inputs, show confidence, require human approval, log overrides, and prevent autonomous chemical advice.</div>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>20. Definition of Production Readiness</p>
+
+<p>The product is production-ready only when critical workflows are implemented and tested; authorization and tenant isolation are proven; audit logs cover sensitive changes; backups and restoration are tested; monitoring, alerting, incident response, privacy, retention, and support procedures are active; financial reports reconcile against controlled fixtures; field sync survives poor connectivity; migration has been rehearsed; and pilot customers have formally accepted the release.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+<p>21. Assumptions and Source Boundaries</p>
+
+<p>This document combines: (a) public PestVyapar product claims reviewed on 26 August 2026; (b) functionality observed in the local Tech-house-pest-control source code; and (c) clearly identified recommendations and architecture assumptions. Logged-in production screens were not available to the documentation process, so public claims such as live GPS, AI audit, mobile offline capability, WhatsApp automation, full payroll, multi-branch control, and statutory filing should be validated during stakeholder discovery and acceptance testing.</p>
+<div class="spacer"></div>
+<div class="spacer"></div>
+</body></html>

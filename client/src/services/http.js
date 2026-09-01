@@ -1,0 +1,1 @@
+import axios from 'axios';export const http=axios.create({baseURL:import.meta.env.VITE_API_URL||'http://localhost:5000/api/v1',withCredentials:true});let accessToken=null;export const setAccessToken=(token)=>{accessToken=token};http.interceptors.request.use(config=>{if(accessToken)config.headers.Authorization=`Bearer ${accessToken}`;return config});
