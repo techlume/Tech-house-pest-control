@@ -1,0 +1,2 @@
+import mongoose from 'mongoose';
+const schema=new mongoose.Schema({companyId:{type:mongoose.Schema.Types.ObjectId,ref:'Company',required:true,index:true},name:{type:String,required:true,trim:true},code:{type:String,required:true,uppercase:true,trim:true},email:String,phone:String,gstin:String,address:{line1:String,line2:String,city:String,state:String,pin:String},active:{type:Boolean,default:true}},{timestamps:true});schema.index({companyId:1,code:1},{unique:true});export const Branch=mongoose.model('Branch',schema);

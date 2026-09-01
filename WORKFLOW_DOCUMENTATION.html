@@ -1,0 +1,1417 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>Tech House Pest Control Workflow Documentation</title>
+<style>
+  body { font-family: Arial, sans-serif; line-height: 1.45; color: #111; margin: 32px; }
+  h1 { color: #1677c9; font-size: 26px; margin: 0 0 10px; }
+  h2 { color: #2b8a3e; font-size: 20px; margin-top: 26px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  h3 { color: #0b5f88; font-size: 16px; margin-top: 18px; }
+  p { margin: 6px 0; }
+  ul { margin: 6px 0 12px 22px; }
+  li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<h1>Tech House Pest Control</h1>
+<p></p>
+<p>Workflow Documentation</p>
+<p></p>
+<p>Date: August 31, 2026</p>
+<p></p>
+<p>This document describes the current built workflow of the web application panel by panel, menu by menu, and button by button.</p>
+<p></p>
+<p>It reflects the app as implemented now, including role-based visibility, form actions, status transitions, and the main end-to-end flow from lead to payment.</p>
+<p></p>
+<h2>1) Role-based access summary</h2>
+<p></p>
+<p>The app is built as a single-company, multi-branch system.</p>
+<p></p>
+<ul>
+<li>Owner / Admin</li>
+</ul>
+<p>  - Can see almost all panels.</p>
+<p>  - Can manage branches, users, integrations, inventory approvals, reports, and most finance actions.</p>
+<p></p>
+<ul>
+<li>Salesperson</li>
+</ul>
+<p>  - Can work in CRM, inspections, quotations, contract creation, and assigned sales follow-up tasks.</p>
+<p></p>
+<ul>
+<li>Dispatcher</li>
+</ul>
+<p>  - Can manage calendar, visit assignment, job assignment, complaints assignment, and scheduling-related actions.</p>
+<p></p>
+<ul>
+<li>Technician</li>
+</ul>
+<p>  - Can view assigned work, travel, check-in, complete job cards, capture photos, GPS, and service reports.</p>
+<p></p>
+<ul>
+<li>Accountant</li>
+</ul>
+<p>  - Can manage billing, receipts, reminders, payroll-related finance actions, and report viewing.</p>
+<p></p>
+<ul>
+<li>Storekeeper</li>
+</ul>
+<p>  - Can manage inventory, transfers, stock movement, and procurement receiving.</p>
+<p></p>
+<ul>
+<li>Customer</li>
+</ul>
+<p>  - Can access a reduced set of customer-facing panels such as dashboard, quotations, contracts, calendar, job cards, billing, and complaints, based on the current permission rules.</p>
+<p></p>
+<h2>2) Global navigation and layout</h2>
+<p></p>
+<h3>Sidebar menu items</h3>
+<p></p>
+<p>The sidebar shows these panels:</p>
+<p></p>
+<ul>
+<li>Dashboard</li>
+<li>CRM &amp; Customers</li>
+<li>Inspections</li>
+<li>Quotations</li>
+<li>Contracts &amp; AMC</li>
+<li>Calendar</li>
+<li>Job Cards</li>
+<li>Inventory</li>
+<li>Purchases &amp; Expenses</li>
+<li>Data Import &amp; Export</li>
+<li>Billing</li>
+<li>Complaints</li>
+<li>HR &amp; Payroll</li>
+<li>Reports</li>
+<li>Notifications</li>
+<li>Branches &amp; Users</li>
+<li>Integrations</li>
+</ul>
+<p></p>
+<p>Some of these are hidden automatically depending on the logged-in role.</p>
+<p></p>
+<h3>Common global controls</h3>
+<p></p>
+<ul>
+<li>Mobile menu button</li>
+</ul>
+<p>  - Opens the sidebar on small screens.</p>
+<p></p>
+<ul>
+<li>Close sidebar button</li>
+</ul>
+<p>  - Closes the mobile drawer.</p>
+<p></p>
+<ul>
+<li>Logout button</li>
+</ul>
+<p>  - Logs the user out and clears the session.</p>
+<p></p>
+<ul>
+<li>Branch chip</li>
+</ul>
+<p>  - Indicates the current branch context for the logged-in user.</p>
+<p></p>
+<h2>3) Login workflow</h2>
+<p></p>
+<h3>Screen: Sign in</h3>
+<p></p>
+<p>Path: `/login`</p>
+<p></p>
+<p>#### Fields</p>
+<p></p>
+<ul>
+<li>Email address</li>
+<li>Password</li>
+</ul>
+<p></p>
+<p>#### Buttons and controls</p>
+<p></p>
+<ul>
+<li>Eye icon</li>
+</ul>
+<p>  - Toggles password visibility.</p>
+<p></p>
+<ul>
+<li>Sign in</li>
+</ul>
+<p>  - Submits the email and password.</p>
+<p>  - If login succeeds, the user enters the app.</p>
+<p></p>
+<ul>
+<li>Verify customer email</li>
+</ul>
+<p>  - Opens the OTP verification flow for customer accounts.</p>
+<p></p>
+<ul>
+<li>Send OTP</li>
+</ul>
+<p>  - Sends a six-digit email OTP to the entered email address.</p>
+<p></p>
+<ul>
+<li>Verify email</li>
+</ul>
+<p>  - Verifies the OTP and marks the email as verified.</p>
+<p></p>
+<p>#### Validation rules</p>
+<p></p>
+<ul>
+<li>Email must be valid.</li>
+<li>Password must be 8 to 64 characters.</li>
+<li>Password must include:</li>
+</ul>
+<p>  - uppercase</p>
+<p>  - lowercase</p>
+<p>  - number</p>
+<p>  - special character</p>
+<p></p>
+<p>#### Login outcome</p>
+<p></p>
+<ul>
+<li>If credentials are valid, the user is signed in and redirected to the dashboard.</li>
+<li>If a customer email is not verified, the verification workflow is shown.</li>
+</ul>
+<p></p>
+<h2>4) Dashboard workflow</h2>
+<p></p>
+<h3>Screen: Dashboard</h3>
+<p></p>
+<p>Path: `/`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Shows live business alerts and operational reminders.</p>
+<p></p>
+<p>#### Main panels</p>
+<p></p>
+<ul>
+<li>Sales follow-ups</li>
+<li>Upcoming visits</li>
+<li>Contract renewals</li>
+<li>Payments due</li>
+<li>Complaint SLA</li>
+<li>Low stock</li>
+</ul>
+<p></p>
+<p>#### Button</p>
+<p></p>
+<ul>
+<li>Send reminder</li>
+</ul>
+<p>  - Visible for Owner, Admin, and Accountant.</p>
+<p>  - Sends a payment reminder email for the selected invoice.</p>
+<p>  - Used from the Payments due panel.</p>
+<p></p>
+<p>#### Dashboard behavior</p>
+<p></p>
+<ul>
+<li>Loads business summary and reminder lists automatically.</li>
+<li>If a list is empty, it shows a friendly empty state.</li>
+</ul>
+<p></p>
+<h2>5) CRM &amp; Customers workflow</h2>
+<p></p>
+<h3>Screen: CRM &amp; Customers</h3>
+<p></p>
+<p>Path: `/crm`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>This is the main sales entry panel for leads and customers.</p>
+<p></p>
+<p>#### Tabs</p>
+<p></p>
+<ul>
+<li>Leads</li>
+<li>Customers</li>
+</ul>
+<p></p>
+<p>#### Top controls</p>
+<p></p>
+<ul>
+<li>Add lead</li>
+<li>Add customer</li>
+<li>Search field</li>
+</ul>
+<p></p>
+<p>#### Workflow for Leads tab</p>
+<p></p>
+<p>1. Open the CRM &amp; Customers panel.</p>
+<p>2. Stay on the Leads tab.</p>
+<p>3. Click Add lead.</p>
+<p>4. Fill:</p>
+<p>   - name</p>
+<p>   - phone</p>
+<p>   - email</p>
+<p>   - source</p>
+<p>   - property type</p>
+<p>   - priority</p>
+<p>   - pest types</p>
+<p>   - address</p>
+<p>   - city</p>
+<p>   - branch if the role can assign branches</p>
+<p>5. Submit the form.</p>
+<p>6. The lead appears in the table.</p>
+<p></p>
+<p>#### Lead row actions</p>
+<p></p>
+<ul>
+<li>Move toâ€¦</li>
+</ul>
+<p>  - Changes lead status.</p>
+<p>  - Available transitions depend on the current lead stage.</p>
+<p></p>
+<ul>
+<li>Convert to customer</li>
+</ul>
+<p>  - Converts a qualified lead into a customer record.</p>
+<p></p>
+<ul>
+<li>Assignment and follow-up</li>
+</ul>
+<p>  - Opens a modal to:</p>
+<p>    - assign salesperson</p>
+<p>    - set next follow-up date/time</p>
+<p>    - edit lead notes</p>
+<p>  - Also shows the activity timeline for the lead.</p>
+<p></p>
+<p>#### Workflow for Customers tab</p>
+<p></p>
+<p>1. Switch to the Customers tab.</p>
+<p>2. Click Add customer.</p>
+<p>3. Fill:</p>
+<p>   - customer name</p>
+<p>   - phone</p>
+<p>   - email</p>
+<p>   - customer type</p>
+<p>   - GSTIN</p>
+<p>   - primary site name</p>
+<p>   - address</p>
+<p>   - city</p>
+<p>   - state</p>
+<p>   - PIN</p>
+<p>   - map location</p>
+<p>4. Submit the form.</p>
+<p>5. The customer and the primary site are created together.</p>
+<p></p>
+<p>#### Customer row actions</p>
+<p></p>
+<ul>
+<li>Add service property</li>
+</ul>
+<p>  - Adds another site/property under the same customer.</p>
+<p></p>
+<ul>
+<li>Edit customer</li>
+</ul>
+<p>  - Updates customer details and the primary site.</p>
+<p></p>
+<h2>6) Inspections workflow</h2>
+<p></p>
+<h3>Screen: Site Inspections</h3>
+<p></p>
+<p>Path: `/inspections`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Used to schedule and manage on-site inspections before quotations are created.</p>
+<p></p>
+<p>#### Main button</p>
+<p></p>
+<ul>
+<li>Schedule inspection</li>
+</ul>
+<p></p>
+<p>#### Workflow</p>
+<p></p>
+<p>1. Click Schedule inspection.</p>
+<p>2. Select:</p>
+<p>   - branch, if visible</p>
+<p>   - customer</p>
+<p>   - property/site</p>
+<p>   - scheduled date and time</p>
+<p>   - notes</p>
+<p>3. Submit.</p>
+<p>4. The inspection appears as a scheduled record.</p>
+<p></p>
+<p>#### Inspection card actions</p>
+<p></p>
+<ul>
+<li>Assign inspectorâ€¦</li>
+</ul>
+<p>  - Sets the technician/inspector for the inspection.</p>
+<p></p>
+<ul>
+<li>Start</li>
+</ul>
+<p>  - Moves the inspection to In Progress.</p>
+<p></p>
+<ul>
+<li>Complete</li>
+</ul>
+<p>  - Opens the completion form.</p>
+<p></p>
+<ul>
+<li>Cancel</li>
+</ul>
+<p>  - Cancels the inspection.</p>
+<p></p>
+<ul>
+<li>Create quotation</li>
+</ul>
+<p>  - Available only after the inspection is completed.</p>
+<p>  - Creates a draft quotation from the findings and recommended services.</p>
+<p></p>
+<p>#### Completion form fields</p>
+<p></p>
+<ul>
+<li>pest type</li>
+<li>area</li>
+<li>severity</li>
+<li>observation</li>
+<li>recommendation</li>
+<li>recommended service</li>
+<li>visits</li>
+<li>estimated rate</li>
+</ul>
+<p></p>
+<h2>7) Quotations workflow</h2>
+<p></p>
+<h3>Screen: Quotations</h3>
+<p></p>
+<p>Path: `/quotations`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Prepare service proposals and move them through approval and sales stages.</p>
+<p></p>
+<p>#### Main button</p>
+<p></p>
+<ul>
+<li>New quotation</li>
+</ul>
+<p></p>
+<p>#### Workflow</p>
+<p></p>
+<p>1. Click New quotation.</p>
+<p>2. Choose:</p>
+<p>   - branch, if required</p>
+<p>   - customer</p>
+<p>   - property</p>
+<p>   - valid until date</p>
+<p>   - service name</p>
+<p>   - visits</p>
+<p>   - rate</p>
+<p>   - tax treatment</p>
+<p>   - tax type</p>
+<p>   - GST rate</p>
+<p>   - terms</p>
+<p>3. Submit.</p>
+<p>4. The quotation is created in Draft status.</p>
+<p></p>
+<p>#### Quotation row actions</p>
+<p></p>
+<ul>
+<li>Move toâ€¦</li>
+</ul>
+<p>  - Advances the quotation through status transitions such as:</p>
+<p>    - Draft</p>
+<p>    - Approval Pending</p>
+<p>    - Sent</p>
+<p>    - Viewed</p>
+<p>    - Accepted</p>
+<p>    - Rejected</p>
+<p>    - Expired</p>
+<p></p>
+<p>#### Related flow</p>
+<p></p>
+<ul>
+<li>Inspections can generate draft quotations automatically from the completed inspection screen.</li>
+</ul>
+<p></p>
+<h2>8) Contracts &amp; AMC workflow</h2>
+<p></p>
+<h3>Screen: Contracts &amp; AMC</h3>
+<p></p>
+<p>Path: `/contracts`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Convert accepted quotations into AMC contracts and manage renewals.</p>
+<p></p>
+<p>#### Conversion panel</p>
+<p></p>
+<ul>
+<li>Quotation rows ready for conversion are shown at the top.</li>
+</ul>
+<p></p>
+<p>#### Main button in conversion panel</p>
+<p></p>
+<ul>
+<li>Create AMC</li>
+</ul>
+<p>  - Converts an accepted quotation into a contract.</p>
+<p>  - Generates scheduled visits from the quotation.</p>
+<p></p>
+<p>#### Contract row actions</p>
+<p></p>
+<ul>
+<li>Pause</li>
+</ul>
+<p>  - Pauses an active contract.</p>
+<p></p>
+<ul>
+<li>Resume</li>
+</ul>
+<p>  - Resumes a paused contract.</p>
+<p></p>
+<ul>
+<li>Renew</li>
+</ul>
+<p>  - Opens the renewal form.</p>
+<p></p>
+<ul>
+<li>Cancel</li>
+</ul>
+<p>  - Cancels the contract.</p>
+<p></p>
+<p>#### Renewal form fields</p>
+<p></p>
+<ul>
+<li>new start date</li>
+<li>new end date</li>
+<li>contract value</li>
+</ul>
+<p></p>
+<p>#### Renewal result</p>
+<p></p>
+<ul>
+<li>Creates a new contract and its service schedule.</li>
+<li>Marks the current contract as renewed.</li>
+</ul>
+<p></p>
+<h2>9) Calendar workflow</h2>
+<p></p>
+<h3>Screen: Service Calendar</h3>
+<p></p>
+<p>Path: `/calendar`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Shows all scheduled visits grouped by date for dispatch planning.</p>
+<p></p>
+<p>#### Visit card content</p>
+<p></p>
+<ul>
+<li>visit number</li>
+<li>time</li>
+<li>customer</li>
+<li>service name</li>
+<li>status</li>
+<li>technician</li>
+</ul>
+<p></p>
+<p>#### Button</p>
+<p></p>
+<ul>
+<li>Reschedule</li>
+</ul>
+<p>  - Visible for Owner, Admin, and Dispatcher.</p>
+<p>  - Opens a modal to change the visit date and time.</p>
+<p></p>
+<p>#### Workflow</p>
+<p></p>
+<p>1. Open the Calendar panel.</p>
+<p>2. Review grouped visit load by day.</p>
+<p>3. Click Reschedule on a scheduled or assigned visit.</p>
+<p>4. Enter the new date/time.</p>
+<p>5. Save schedule.</p>
+<p></p>
+<h2>10) Job Cards &amp; Service Reports workflow</h2>
+<p></p>
+<h3>Screen: Job Cards &amp; Service Reports</h3>
+<p></p>
+<p>Path: `/jobs`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>This is the field execution workspace for dispatch, technicians, and service completion.</p>
+<p></p>
+<p>#### Main job tile actions</p>
+<p></p>
+<ul>
+<li>Assign</li>
+</ul>
+<p>  - Available for dispatch roles when a visit has no technician assigned.</p>
+<p></p>
+<ul>
+<li>Start travel</li>
+</ul>
+<p>  - Marks travel to the site.</p>
+<p></p>
+<ul>
+<li>Check in</li>
+</ul>
+<p>  - Captures GPS check-in location.</p>
+<p></p>
+<ul>
+<li>Start</li>
+</ul>
+<p>  - Marks the job as started on site.</p>
+<p></p>
+<ul>
+<li>Complete</li>
+</ul>
+<p>  - Opens the completion form and service report capture flow.</p>
+<p></p>
+<p>#### Completion form fields</p>
+<p></p>
+<ul>
+<li>pest found</li>
+<li>area</li>
+<li>severity</li>
+<li>treatment performed</li>
+<li>recommendations</li>
+<li>chemical usage fields</li>
+<li>before-treatment photo</li>
+<li>after-treatment photo</li>
+<li>customer representative</li>
+<li>customer acknowledged completion</li>
+<li>customer signature</li>
+</ul>
+<p></p>
+<p>#### Evidence workflow</p>
+<p></p>
+<ul>
+<li>Photo upload compresses the image before saving.</li>
+<li>Signature pad captures the customer signature.</li>
+<li>GPS check-out is captured at completion time.</li>
+</ul>
+<p></p>
+<p>#### Service report panel</p>
+<p></p>
+<ul>
+<li>Shows completed service reports.</li>
+</ul>
+<p></p>
+<p>#### Service report action</p>
+<p></p>
+<ul>
+<li>View service report</li>
+</ul>
+<p>  - Opens the generated report.</p>
+<p></p>
+<ul>
+<li>Print / Save PDF</li>
+</ul>
+<p>  - Opens the browser print dialog for PDF export.</p>
+<p></p>
+<p>#### Technician GPS tracking</p>
+<p></p>
+<ul>
+<li>If a technician has an active in-progress visit, the browser can send location updates periodically while the page is open.</li>
+</ul>
+<p></p>
+<h2>11) Inventory &amp; Chemicals workflow</h2>
+<p></p>
+<h3>Screen: Inventory &amp; Chemicals</h3>
+<p></p>
+<p>Path: `/inventory`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Track products, batches, movements, transfers, expiries, and stock adjustments.</p>
+<p></p>
+<p>#### Top actions</p>
+<p></p>
+<ul>
+<li>Product</li>
+</ul>
+<p>  - Adds a new inventory product with opening batch.</p>
+<p></p>
+<ul>
+<li>Stock in/out</li>
+</ul>
+<p>  - Records a movement.</p>
+<p></p>
+<ul>
+<li>Transfer</li>
+</ul>
+<p>  - Transfers stock to another branch.</p>
+<p></p>
+<ul>
+<li>Request adjustment</li>
+</ul>
+<p>  - Requests a stock correction for approval.</p>
+<p></p>
+<p>#### Summary cards</p>
+<p></p>
+<ul>
+<li>number of products</li>
+<li>total units</li>
+<li>low stock count</li>
+<li>expiring in 60 days</li>
+</ul>
+<p></p>
+<p>#### Expiry alerts</p>
+<p></p>
+<ul>
+<li>Shows batches that are expiring or already expired.</li>
+</ul>
+<p></p>
+<p>#### Inventory table</p>
+<p></p>
+<ul>
+<li>SKU / product</li>
+<li>category</li>
+<li>batch</li>
+<li>expiry</li>
+<li>available quantity</li>
+<li>reorder level</li>
+</ul>
+<p></p>
+<p>#### Adjustment approval queue</p>
+<p></p>
+<ul>
+<li>Owner and Admin can approve or reject pending stock adjustments.</li>
+</ul>
+<p></p>
+<p>#### Recent stock movements</p>
+<p></p>
+<ul>
+<li>Shows recent purchases, returns, issues, and consumption records.</li>
+</ul>
+<p></p>
+<p>#### Product form fields</p>
+<p></p>
+<ul>
+<li>branch, if applicable</li>
+<li>SKU</li>
+<li>product name</li>
+<li>category</li>
+<li>brand</li>
+<li>unit</li>
+<li>HSN/SAC</li>
+<li>reorder level</li>
+<li>opening batch</li>
+<li>expiry date</li>
+<li>opening quantity</li>
+<li>purchase rate</li>
+</ul>
+<p></p>
+<p>#### Movement form fields</p>
+<p></p>
+<ul>
+<li>product</li>
+<li>batch</li>
+<li>movement type</li>
+<li>quantity</li>
+<li>note/reference</li>
+</ul>
+<p></p>
+<p>#### Transfer form fields</p>
+<p></p>
+<ul>
+<li>product</li>
+<li>batch</li>
+<li>destination branch</li>
+<li>quantity</li>
+<li>note</li>
+</ul>
+<p></p>
+<p>#### Adjustment form fields</p>
+<p></p>
+<ul>
+<li>product</li>
+<li>batch</li>
+<li>direction</li>
+<li>quantity</li>
+<li>reason</li>
+</ul>
+<p></p>
+<h2>12) Billing &amp; Payments workflow</h2>
+<p></p>
+<h3>Screen: Billing &amp; Payments</h3>
+<p></p>
+<p>Path: `/billing`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Create invoices, record receipts, view documents, and accept online payments.</p>
+<p></p>
+<p>#### Tabs</p>
+<p></p>
+<ul>
+<li>Invoices</li>
+<li>Receipts</li>
+</ul>
+<p></p>
+<p>#### Top actions</p>
+<p></p>
+<ul>
+<li>New invoice</li>
+<li>Record receipt</li>
+</ul>
+<p></p>
+<p>#### Invoice workflow</p>
+<p></p>
+<p>1. Click New invoice.</p>
+<p>2. Choose:</p>
+<p>   - branch, if visible</p>
+<p>   - customer</p>
+<p>   - due date</p>
+<p>   - GST / non-GST treatment</p>
+<p>   - tax type</p>
+<p>   - place of supply</p>
+<p>   - reverse charge</p>
+<p>   - description</p>
+<p>   - HSN/SAC</p>
+<p>   - quantity</p>
+<p>   - rate</p>
+<p>   - GST rate</p>
+<p>3. Submit.</p>
+<p>4. Invoice is created and totals are calculated.</p>
+<p></p>
+<p>#### Receipt workflow</p>
+<p></p>
+<p>1. Click Record receipt.</p>
+<p>2. Choose:</p>
+<p>   - branch, if visible</p>
+<p>   - customer</p>
+<p>   - amount</p>
+<p>   - method</p>
+<p>   - reference number</p>
+<p>3. Submit.</p>
+<p>4. The receipt is stored and allocated.</p>
+<p></p>
+<p>#### Invoice row actions</p>
+<p></p>
+<ul>
+<li>View invoice</li>
+</ul>
+<p>  - Opens the invoice document.</p>
+<p></p>
+<ul>
+<li>Pay online</li>
+</ul>
+<p>  - Starts Razorpay Checkout when the invoice has balance due.</p>
+<p></p>
+<p>#### Payment flow</p>
+<p></p>
+<p>1. Click Pay online.</p>
+<p>2. Razorpay order is created.</p>
+<p>3. Customer completes the payment.</p>
+<p>4. The app verifies the payment signature.</p>
+<p>5. The receipt is created and invoice balance updates.</p>
+<p></p>
+<p>#### Invoice document actions</p>
+<p></p>
+<ul>
+<li>Print / Save PDF</li>
+</ul>
+<p>  - Opens browser print mode.</p>
+<p></p>
+<p>#### Document output</p>
+<p></p>
+<ul>
+<li>The invoice document includes:</li>
+</ul>
+<p>  - seller details</p>
+<p>  - branch details</p>
+<p>  - customer details</p>
+<p>  - line items</p>
+<p>  - totals</p>
+<p>  - GST information</p>
+<p>  - balance due</p>
+<p></p>
+<p>#### Billing-specific behavior</p>
+<p></p>
+<ul>
+<li>Supports both GST and non-GST bills.</li>
+<li>Supports place of supply and reverse charge.</li>
+<li>Uses the GST invoice format created inside the site.</li>
+</ul>
+<p></p>
+<h2>13) Complaints &amp; SLA workflow</h2>
+<p></p>
+<h3>Screen: Complaints &amp; SLA</h3>
+<p></p>
+<p>Path: `/complaints`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Track customer complaints, deadlines, assignment, and corrective resolution.</p>
+<p></p>
+<p>#### Main button</p>
+<p></p>
+<ul>
+<li>Register complaint</li>
+</ul>
+<p></p>
+<p>#### Complaint workflow</p>
+<p></p>
+<p>1. Click Register complaint.</p>
+<p>2. Choose:</p>
+<p>   - branch, if visible</p>
+<p>   - customer</p>
+<p>   - property</p>
+<p>   - category</p>
+<p>   - priority</p>
+<p>   - subject</p>
+<p>   - description</p>
+<p>3. Submit.</p>
+<p>4. The complaint appears in the list with SLA tracking.</p>
+<p></p>
+<p>#### Complaint row actions</p>
+<p></p>
+<ul>
+<li>Move toâ€¦</li>
+</ul>
+<p>  - Moves complaint through allowed status transitions.</p>
+<p></p>
+<ul>
+<li>Assign technicianâ€¦</li>
+</ul>
+<p>  - Assigns ownership to a technician.</p>
+<p></p>
+<p>#### Resolve workflow</p>
+<p></p>
+<p>1. When status is changed to Resolved, a resolution modal opens.</p>
+<p>2. Enter the corrective action and resolution note.</p>
+<p>3. Save the resolution.</p>
+<p></p>
+<p>#### SLA indicators</p>
+<p></p>
+<ul>
+<li>Overdue complaints are visually flagged.</li>
+<li>Due date and current assignee are shown on the card.</li>
+</ul>
+<p></p>
+<h2>14) HR, Attendance &amp; Payroll workflow</h2>
+<p></p>
+<h3>Screen: HR, Attendance &amp; Payroll</h3>
+<p></p>
+<p>Path: `/hr`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Manage employees, attendance, leave requests, payroll generation, and salary payment status.</p>
+<p></p>
+<p>#### Tabs</p>
+<p></p>
+<ul>
+<li>Employees</li>
+<li>Attendance</li>
+<li>Leave</li>
+<li>Payroll</li>
+</ul>
+<p></p>
+<p>#### Employees tab</p>
+<p></p>
+<p>##### Main button</p>
+<p></p>
+<ul>
+<li>Employee</li>
+</ul>
+<p></p>
+<p>##### Employee form fields</p>
+<p></p>
+<ul>
+<li>branch</li>
+<li>login account</li>
+<li>name</li>
+<li>email</li>
+<li>phone</li>
+<li>designation</li>
+<li>department</li>
+<li>employment type</li>
+<li>joining date</li>
+<li>base salary</li>
+<li>allowances</li>
+<li>deductions</li>
+</ul>
+<p></p>
+<p>##### Workflow</p>
+<p></p>
+<p>1. Click Employee.</p>
+<p>2. Fill employee details.</p>
+<p>3. Optionally link a user account for self-service access.</p>
+<p>4. Save employee.</p>
+<p></p>
+<p>#### Attendance tab</p>
+<p></p>
+<p>##### Main button</p>
+<p></p>
+<ul>
+<li>Attendance</li>
+</ul>
+<p></p>
+<p>##### Attendance form fields</p>
+<p></p>
+<ul>
+<li>employee</li>
+<li>date</li>
+<li>status</li>
+<li>punch in</li>
+<li>punch out</li>
+</ul>
+<p></p>
+<p>##### Workflow</p>
+<p></p>
+<p>1. Click Attendance.</p>
+<p>2. Choose the employee and date.</p>
+<p>3. Fill punch times or status.</p>
+<p>4. Save attendance.</p>
+<p></p>
+<p>##### Punch buttons for non-admin users</p>
+<p></p>
+<ul>
+<li>Punch in</li>
+<li>Punch out</li>
+</ul>
+<p></p>
+<p>These use GPS location capture.</p>
+<p></p>
+<p>#### Leave tab</p>
+<p></p>
+<p>##### Main button</p>
+<p></p>
+<ul>
+<li>Request leave</li>
+</ul>
+<p></p>
+<p>##### Leave form fields</p>
+<p></p>
+<ul>
+<li>employee, for admin-created requests</li>
+<li>leave type</li>
+<li>from date</li>
+<li>to date</li>
+<li>reason</li>
+</ul>
+<p></p>
+<p>##### Leave row actions</p>
+<p></p>
+<ul>
+<li>Approve</li>
+<li>Reject</li>
+</ul>
+<p></p>
+<p>#### Payroll tab</p>
+<p></p>
+<p>##### Main button</p>
+<p></p>
+<ul>
+<li>Generate payroll</li>
+</ul>
+<p></p>
+<p>##### Payroll form fields</p>
+<p></p>
+<ul>
+<li>branch</li>
+<li>month</li>
+<li>year</li>
+<li>working days</li>
+</ul>
+<p></p>
+<p>##### Payroll row actions</p>
+<p></p>
+<ul>
+<li>View</li>
+</ul>
+<p>  - Opens the payroll document.</p>
+<p></p>
+<ul>
+<li>Print payslips</li>
+</ul>
+<p>  - Opens browser print mode.</p>
+<p></p>
+<ul>
+<li>Approve payroll</li>
+</ul>
+<p>  - Moves draft payroll to approved status.</p>
+<p></p>
+<ul>
+<li>Mark paid</li>
+</ul>
+<p>  - Available on approved payroll lines.</p>
+<p>  - Prompts for bank/payment reference.</p>
+<p></p>
+<h2>15) Reports &amp; Analytics workflow</h2>
+<p></p>
+<h3>Screen: Reports &amp; Analytics</h3>
+<p></p>
+<p>Path: `/reports`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Summarizes finance, GST, sales, operations, and technician productivity.</p>
+<p></p>
+<p>#### Controls</p>
+<p></p>
+<ul>
+<li>Branch filter, for Owner/Admin</li>
+<li>From date</li>
+<li>To date</li>
+<li>Apply filters</li>
+<li>PDF / Print</li>
+<li>Invoice CSV</li>
+<li>Visit CSV</li>
+</ul>
+<p></p>
+<p>#### Workflow</p>
+<p></p>
+<p>1. Open Reports.</p>
+<p>2. Choose date range.</p>
+<p>3. Choose branch if needed.</p>
+<p>4. Click Apply filters.</p>
+<p>5. Review the summary.</p>
+<p>6. Use PDF / Print or CSV export buttons when needed.</p>
+<p></p>
+<p>#### Data shown</p>
+<p></p>
+<ul>
+<li>billed</li>
+<li>collected</li>
+<li>outstanding</li>
+<li>GST tax</li>
+<li>visits</li>
+<li>completed jobs</li>
+<li>technician productivity</li>
+</ul>
+<p></p>
+<h2>16) Notifications &amp; Audit workflow</h2>
+<p></p>
+<h3>Screen: Notifications &amp; Audit</h3>
+<p></p>
+<p>Path: `/activity`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Shows user notifications and protected audit records.</p>
+<p></p>
+<p>#### Tabs</p>
+<p></p>
+<ul>
+<li>Notifications</li>
+<li>Audit log</li>
+</ul>
+<p></p>
+<p>#### Notification actions</p>
+<p></p>
+<ul>
+<li>Click a notification row</li>
+</ul>
+<p>  - Marks it as read if needed.</p>
+<p>  - Navigates to the linked page if a link exists.</p>
+<p></p>
+<ul>
+<li>Mark all read</li>
+</ul>
+<p>  - Marks every notification as read.</p>
+<p></p>
+<p>#### Audit log</p>
+<p></p>
+<ul>
+<li>Visible to Owner and Admin.</li>
+<li>Shows:</li>
+</ul>
+<p>  - time</p>
+<p>  - actor</p>
+<p>  - action</p>
+<p>  - entity</p>
+<p>  - branch</p>
+<p>  - IP address</p>
+<p></p>
+<h2>17) Branches &amp; Users workflow</h2>
+<p></p>
+<h3>Screen: Branches &amp; Users</h3>
+<p></p>
+<p>Path: `/management`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Manage company profile, branches, users, and branch-level access.</p>
+<p></p>
+<p>#### Top actions</p>
+<p></p>
+<ul>
+<li>Company profile</li>
+<li>Add branch</li>
+<li>Add user</li>
+</ul>
+<p></p>
+<p>#### Company profile form</p>
+<p></p>
+<p>Fields include:</p>
+<p></p>
+<ul>
+<li>display name</li>
+<li>legal name</li>
+<li>GSTIN</li>
+<li>PAN</li>
+<li>email</li>
+<li>phone</li>
+<li>registered address</li>
+<li>city</li>
+<li>state</li>
+<li>PIN</li>
+<li>default invoice terms</li>
+</ul>
+<p></p>
+<p>#### Branch form</p>
+<p></p>
+<p>Fields include:</p>
+<p></p>
+<ul>
+<li>name</li>
+<li>code</li>
+<li>phone</li>
+<li>email</li>
+<li>GSTIN</li>
+<li>active branch toggle</li>
+<li>address</li>
+<li>city</li>
+<li>PIN</li>
+</ul>
+<p></p>
+<p>#### User form</p>
+<p></p>
+<p>Fields include:</p>
+<p></p>
+<ul>
+<li>name</li>
+<li>email</li>
+<li>phone</li>
+<li>temporary password</li>
+<li>role</li>
+<li>branch</li>
+<li>linked customer for customer role</li>
+</ul>
+<p></p>
+<p>#### User actions</p>
+<p></p>
+<ul>
+<li>Activate / Deactivate</li>
+<li>Reset password</li>
+<li>Edit</li>
+</ul>
+<p></p>
+<p>#### Workflow</p>
+<p></p>
+<p>1. Open Company profile to update legal business details.</p>
+<p>2. Add branches for each location.</p>
+<p>3. Add users and assign roles.</p>
+<p>4. Link customer users to their customer record when needed.</p>
+<p></p>
+<h2>18) Integrations workflow</h2>
+<p></p>
+<h3>Screen: Integrations</h3>
+<p></p>
+<p>Path: `/integrations`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Show which external services are configured and allow a test email to be sent.</p>
+<p></p>
+<p>#### Main indicators</p>
+<p></p>
+<ul>
+<li>email</li>
+<li>sms</li>
+<li>maps</li>
+<li>payment</li>
+<li>gst</li>
+</ul>
+<p></p>
+<p>#### Behavior</p>
+<p></p>
+<ul>
+<li>The page shows whether each integration is configured.</li>
+<li>Credentials are loaded from server environment variables.</li>
+<li>Nothing is stored in frontend code or MongoDB.</li>
+</ul>
+<p></p>
+<p>#### Owner-only section</p>
+<p></p>
+<ul>
+<li>Send test email</li>
+</ul>
+<p></p>
+<p>##### Workflow</p>
+<p></p>
+<p>1. Enter the recipient email.</p>
+<p>2. Click Send test email.</p>
+<p>3. The SMTP connection is tested and a sample message is sent.</p>
+<p></p>
+<h2>19) Purchases &amp; Expenses workflow</h2>
+<p></p>
+<h3>Screen: Suppliers, Purchases &amp; Expenses</h3>
+<p></p>
+<p>Path: `/procurement`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Manage supplier data, purchase orders, stock receiving, and branch expenses.</p>
+<p></p>
+<p>#### Tabs</p>
+<p></p>
+<ul>
+<li>Purchase orders</li>
+<li>Suppliers</li>
+<li>Expenses</li>
+</ul>
+<p></p>
+<p>#### Top action</p>
+<p></p>
+<ul>
+<li>Add record</li>
+</ul>
+<p></p>
+<p>#### Purchase orders tab</p>
+<p></p>
+<p>##### Row actions</p>
+<p></p>
+<ul>
+<li>Approve</li>
+</ul>
+<p>  - Available for Draft purchase orders for Owner/Admin.</p>
+<p></p>
+<ul>
+<li>Receive</li>
+</ul>
+<p>  - Available after approval for Owner/Admin/Storekeeper.</p>
+<p>  - Moves purchased items into inventory.</p>
+<p></p>
+<p>#### Suppliers tab</p>
+<p></p>
+<p>Shows supplier number, contact, GSTIN, payment terms, and status.</p>
+<p></p>
+<p>#### Expenses tab</p>
+<p></p>
+<p>Shows:</p>
+<p></p>
+<ul>
+<li>expense number</li>
+<li>date</li>
+<li>category</li>
+<li>description</li>
+<li>amount</li>
+<li>status</li>
+</ul>
+<p></p>
+<p>##### Row action</p>
+<p></p>
+<ul>
+<li>Approve</li>
+</ul>
+<p>  - Available for recorded expenses for Owner/Admin.</p>
+<p></p>
+<p>#### Add record form types</p>
+<p></p>
+<ul>
+<li>supplier</li>
+<li>purchase</li>
+<li>expense</li>
+</ul>
+<p></p>
+<p>#### Workflow</p>
+<p></p>
+<p>1. Create supplier records.</p>
+<p>2. Create purchase orders against a supplier and product batch.</p>
+<p>3. Approve the purchase order.</p>
+<p>4. Receive the stock into inventory.</p>
+<p>5. Record and approve expenses as needed.</p>
+<p></p>
+<h2>20) Bulk Import &amp; Export workflow</h2>
+<p></p>
+<h3>Screen: Bulk Import &amp; Export</h3>
+<p></p>
+<p>Path: `/data-tools`</p>
+<p></p>
+<p>#### Purpose</p>
+<p></p>
+<p>Import and export leads, customers, and products using CSV files.</p>
+<p></p>
+<p>#### Controls</p>
+<p></p>
+<ul>
+<li>Data type selector</li>
+<li>Branch selector</li>
+<li>CSV file picker</li>
+<li>Download template</li>
+<li>Export data</li>
+<li>Import rows</li>
+</ul>
+<p></p>
+<p>#### Supported entities</p>
+<p></p>
+<ul>
+<li>leads</li>
+<li>customers</li>
+<li>products</li>
+</ul>
+<p></p>
+<p>#### Workflow</p>
+<p></p>
+<p>1. Choose the data type.</p>
+<p>2. Choose a branch or leave it as assigned/all branches.</p>
+<p>3. Download a template if needed.</p>
+<p>4. Fill the CSV file.</p>
+<p>5. Upload the CSV file.</p>
+<p>6. Click Import rows.</p>
+<p>7. Review imported and failed rows.</p>
+<p></p>
+<p>#### Export workflow</p>
+<p></p>
+<p>1. Choose entity.</p>
+<p>2. Click Export data.</p>
+<p>3. CSV is downloaded with the selected data.</p>
+<p></p>
+<h2>21) End-to-end business workflow</h2>
+<p></p>
+<p>This is the main operational chain the app is built to support.</p>
+<p></p>
+<p>1. Create or receive a lead in CRM.</p>
+<p>2. Follow up and qualify the lead.</p>
+<p>3. Convert the lead into a customer.</p>
+<p>4. Schedule an inspection.</p>
+<p>5. Complete the inspection and capture findings.</p>
+<p>6. Generate a quotation.</p>
+<p>7. Send the quotation to the customer.</p>
+<p>8. Convert the accepted quotation into an AMC contract, if applicable.</p>
+<p>9. Generate visit schedule.</p>
+<p>10. View the visit in the calendar.</p>
+<p>11. Assign a technician.</p>
+<p>12. Technician travels, checks in, and completes the job.</p>
+<p>13. Capture evidence, GPS, photos, and signature.</p>
+<p>14. Generate the service report.</p>
+<p>15. Create invoice and record receipt or collect online payment.</p>
+<p>16. Keep reminders for unpaid invoices, visits, contracts, and complaints.</p>
+<p>17. Review reports and audit logs.</p>
+<p></p>
+<h2>22) External integrations pending for later activation</h2>
+<p></p>
+<p>These are supported in the code structure but are still dependent on live provider credentials or later go-live decisions.</p>
+<p></p>
+<ul>
+<li>SMTP live credentials</li>
+<li>Razorpay live activation</li>
+<li>GST e-invoicing / government integration</li>
+<li>VPS file/image storage strategy</li>
+</ul>
+<p></p>
+<h2>23) Notes for the user</h2>
+<p></p>
+<ul>
+<li>The app is built as a website, not a mobile app.</li>
+<li>The workflow is role-aware and branch-aware.</li>
+<li>The current invoice document supports both GST and non-GST bills.</li>
+<li>Customer-facing access is limited compared with internal staff roles.</li>
+<li>The document can be converted into PDF next if needed.</li>
+</ul>
+
+</body>
+</html>

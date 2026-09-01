@@ -1,0 +1,20 @@
+import path from 'node:path';
+import { Router } from 'express';
+import { StoredFile } from '../models/StoredFile.js';
+import { authenticate, branchScope } from '../middleware/auth.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { storage } from '../config/storage.js';
+import { AppError } from '../utils/AppError.js';
+const router = Router();
+router.use(authenticate);
+router.get('/:id', asyncHandler(async (req, res) => {
+  const scope = branchScope(req);
+  const filter = { _id: req.params.id, ...scope };
+  if (req.auth.role === 'CUSTOMER') filter.customerId = req.auth.customerId;
+  const file = await StoredFile.findOne(filter);
+  if (!file) throw new AppError(404, 'File not found');
+  res.type(file.originalType);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.sendFile(path.join(storage.uploadDir, file.filename));
+}));
+export default router;
