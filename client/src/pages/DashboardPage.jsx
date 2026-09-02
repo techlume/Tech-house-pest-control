@@ -3,7 +3,7 @@ import { AlertTriangle, CalendarCheck, Clock3, FileWarning, IndianRupee, Package
 import { http } from '../services/http';
 import { useAuth } from '../context/AuthContext';
 
-const money = (value) => '?' + Number(value || 0).toLocaleString('en-IN');
+const money = (value) => 'â‚¹' + Number(value || 0).toLocaleString('en-IN');
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -34,15 +34,15 @@ export function DashboardPage() {
   };
 
   if (error) return <div className='form-error'>{error}</div>;
-  if (!overview || !reminders) return <div className='empty-table'>Loading dashboard…</div>;
+  if (!overview || !reminders) return <div className='empty-table'>Loading dashboardï¿½</div>;
 
   const groups = [
-    ['Sales follow-ups', reminders.followUps, Clock3, (item) => item.leadNo + ' · ' + item.name],
-    ['Upcoming visits', reminders.visits, CalendarCheck, (item) => item.visitNo + ' · ' + item.customerId?.name],
-    ['Contract renewals', reminders.contracts, FileWarning, (item) => item.contractNo + ' · ' + item.customerId?.name],
-    ['Payments due', reminders.invoices, IndianRupee, (item) => item.invoiceNo + ' · ' + item.customerId?.name],
-    ['Complaint SLA', reminders.complaints, AlertTriangle, (item) => item.complaintNo + ' · ' + item.customerId?.name],
-    ['Low stock', reminders.lowStock, PackageSearch, (item) => item.sku + ' · ' + item.name],
+    ['Sales follow-ups', reminders.followUps, Clock3, (item) => item.leadNo + ' ï¿½ ' + item.name],
+    ['Upcoming visits', reminders.visits, CalendarCheck, (item) => item.visitNo + ' ï¿½ ' + item.customerId?.name],
+    ['Contract renewals', reminders.contracts, FileWarning, (item) => item.contractNo + ' ï¿½ ' + item.customerId?.name],
+    ['Payments due', reminders.invoices, IndianRupee, (item) => item.invoiceNo + ' ï¿½ ' + item.customerId?.name],
+    ['Complaint SLA', reminders.complaints, AlertTriangle, (item) => item.complaintNo + ' ï¿½ ' + item.customerId?.name],
+    ['Low stock', reminders.lowStock, PackageSearch, (item) => item.sku + ' ï¿½ ' + item.name],
   ];
 
   return (
@@ -54,7 +54,7 @@ export function DashboardPage() {
       </div>
       <div className='metric-grid'>
         <Metric icon={Users} label='Active customers' value={overview.operations.customers} />
-        <Metric icon={CalendarCheck} label="Today’s visits" value={overview.operations.todayVisits} />
+        <Metric icon={CalendarCheck} label="Today's visits" value={overview.operations.todayVisits} />
         <Metric icon={IndianRupee} label='Outstanding' value={money(overview.finance.outstanding)} />
         <Metric icon={Clock3} label='Pending follow-ups' value={reminders.followUps.length} />
       </div>
@@ -79,7 +79,7 @@ export function DashboardPage() {
                         onClick={() => sendReminder(item)}
                         disabled={busyId === item._id}
                       >
-                        <Send size={14} /> {busyId === item._id ? 'Sending…' : 'Send reminder'}
+                        <Send size={14} /> {busyId === item._id ? 'Sendingï¿½' : 'Send reminder'}
                       </button>
                     )}
                   </div>

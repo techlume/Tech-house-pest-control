@@ -403,14 +403,14 @@ function InvoiceDocument({ invoice }) {
       </section>
       <table>
         <thead><tr><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>Rate</th><th>Tax</th><th>Total</th></tr></thead>
-        <tbody>{invoice.lines.map((line) => <tr key={line._id}><td>{line.description}</td><td>{line.hsnSac || '�'}</td><td>{line.quantity}</td><td>?{Number(line.rate).toLocaleString('en-IN')}</td><td>{invoice.gstTreatment === 'GST' ? line.taxRate + '%' : '�'}</td><td>?{Number(line.total).toLocaleString('en-IN')}</td></tr>)}</tbody>
+        <tbody>{invoice.lines.map((line) => <tr key={line._id}><td>{line.description}</td><td>{line.hsnSac || '—'}</td><td>{line.quantity}</td><td>₹{Number(line.rate).toLocaleString('en-IN')}</td><td>{invoice.gstTreatment === 'GST' ? line.taxRate + '%' : '—'}</td><td>₹{Number(line.total).toLocaleString('en-IN')}</td></tr>)}</tbody>
       </table>
       <section className='invoice-totals'>
-        <span>Subtotal <strong>?{Number(invoice.subtotal).toLocaleString('en-IN')}</strong></span>
-        {invoice.gstTreatment === 'GST' && <span>{invoice.taxType} <strong>?{Number(invoice.taxTotal).toLocaleString('en-IN')}</strong></span>}
-        <span className='grand'>Grand total <strong>?{Number(invoice.grandTotal).toLocaleString('en-IN')}</strong></span>
-        <span>Paid <strong>?{Number(invoice.paidAmount).toLocaleString('en-IN')}</strong></span>
-        <span>Balance due <strong>?{Number(invoice.dueAmount).toLocaleString('en-IN')}</strong></span>
+        <span>Subtotal <strong>₹{Number(invoice.subtotal).toLocaleString('en-IN')}</strong></span>
+        {invoice.gstTreatment === 'GST' && <span>{invoice.taxType} <strong>₹{Number(invoice.taxTotal).toLocaleString('en-IN')}</strong></span>}
+        <span className='grand'>Grand total <strong>₹{Number(invoice.grandTotal).toLocaleString('en-IN')}</strong></span>
+        <span>Paid <strong>₹{Number(invoice.paidAmount).toLocaleString('en-IN')}</strong></span>
+        <span>Balance due <strong>₹{Number(invoice.dueAmount).toLocaleString('en-IN')}</strong></span>
       </section>
       <footer>
         <span>Computer-generated document</span>
