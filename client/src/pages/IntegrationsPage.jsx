@@ -75,7 +75,7 @@ export function IntegrationsPage() {
             {note && <div className='form-success wide'>{note}</div>}
             <div className='form-actions wide'>
               <button className='primary-button' disabled={busy}>
-                {busy ? 'Sending…' : 'Send test email'}
+                {busy ? 'Sending...' : 'Send test email'}
               </button>
             </div>
           </form>

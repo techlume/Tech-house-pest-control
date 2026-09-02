@@ -34,15 +34,15 @@ export function DashboardPage() {
   };
 
   if (error) return <div className='form-error'>{error}</div>;
-  if (!overview || !reminders) return <div className='empty-table'>Loading dashboard�</div>;
+  if (!overview || !reminders) return <div className='empty-table'>Loading dashboard...</div>;
 
   const groups = [
-    ['Sales follow-ups', reminders.followUps, Clock3, (item) => item.leadNo + ' � ' + item.name],
-    ['Upcoming visits', reminders.visits, CalendarCheck, (item) => item.visitNo + ' � ' + item.customerId?.name],
-    ['Contract renewals', reminders.contracts, FileWarning, (item) => item.contractNo + ' � ' + item.customerId?.name],
-    ['Payments due', reminders.invoices, IndianRupee, (item) => item.invoiceNo + ' � ' + item.customerId?.name],
-    ['Complaint SLA', reminders.complaints, AlertTriangle, (item) => item.complaintNo + ' � ' + item.customerId?.name],
-    ['Low stock', reminders.lowStock, PackageSearch, (item) => item.sku + ' � ' + item.name],
+    ['Sales follow-ups', reminders.followUps, Clock3, (item) => item.leadNo + ' - ' + item.name],
+    ['Upcoming visits', reminders.visits, CalendarCheck, (item) => item.visitNo + ' - ' + item.customerId?.name],
+    ['Contract renewals', reminders.contracts, FileWarning, (item) => item.contractNo + ' - ' + item.customerId?.name],
+    ['Payments due', reminders.invoices, IndianRupee, (item) => item.invoiceNo + ' - ' + item.customerId?.name],
+    ['Complaint SLA', reminders.complaints, AlertTriangle, (item) => item.complaintNo + ' - ' + item.customerId?.name],
+    ['Low stock', reminders.lowStock, PackageSearch, (item) => item.sku + ' - ' + item.name],
   ];
 
   return (
@@ -79,7 +79,7 @@ export function DashboardPage() {
                         onClick={() => sendReminder(item)}
                         disabled={busyId === item._id}
                       >
-                        <Send size={14} /> {busyId === item._id ? 'Sending�' : 'Send reminder'}
+                        <Send size={14} /> {busyId === item._id ? 'Sending...' : 'Send reminder'}
                       </button>
                     )}
                   </div>
