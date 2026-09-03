@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
+import { Navigate, Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { http } from '../services/http';
 export function LoginPage() {
@@ -76,6 +76,9 @@ export function LoginPage() {
       </section>
       <section className='login-panel'>
         <form onSubmit={submit}>
+          <Link to='/' className='back-to-home-link'>
+            <ArrowLeft size={16} /> Back to Storefront Home
+          </Link>
           <img
             className='login-logo-image'
             src='/tech-house-logo.png'
