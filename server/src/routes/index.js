@@ -22,6 +22,7 @@ import procurementRoutes from './procurementRoutes.js';
 import mediaRoutes from './mediaRoutes.js';
 import bulkRoutes from './bulkRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
+import siteConfigRoutes from './siteConfigRoutes.js';
 const router = Router();
 router.get('/health', (_req, res) =>
   res.json({ status: 'ok', timestamp: new Date().toISOString() }),
@@ -49,4 +50,5 @@ router.use('/procurement', procurementRoutes);
 router.use('/media', mediaRoutes);
 router.use('/bulk', bulkRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/site-config', siteConfigRoutes);
 export default router;

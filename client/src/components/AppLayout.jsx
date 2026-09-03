@@ -19,6 +19,7 @@ import {
   Bell,
   ShoppingCart,
   Database,
+  Globe,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -64,6 +65,7 @@ const navGroups = [
       ['Notifications', '/activity', Bell],
       ['Branches & Users', '/management', UserCog],
       ['Integrations', '/integrations', PlugZap],
+      ['Site Changes', '/site-settings', Globe],
     ],
   },
 ];
@@ -88,7 +90,7 @@ export function AppLayout() {
     if (role === 'CUSTOMER') return customerNav.includes(label);
     if (to === '/procurement') return ['OWNER', 'ADMIN', 'ACCOUNTANT', 'STOREKEEPER'].includes(role);
     if (to === '/data-tools') return ['OWNER', 'ADMIN', 'SALESPERSON', 'STOREKEEPER'].includes(role);
-    if (to === '/integrations' || to === '/management') return ['OWNER', 'ADMIN'].includes(role);
+    if (to === '/integrations' || to === '/management' || to === '/site-settings') return ['OWNER', 'ADMIN'].includes(role);
     return true;
   };
 

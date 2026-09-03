@@ -1,3 +1,4 @@
+@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap");
 :root {
   font-family: "DM Sans", sans-serif;
@@ -730,3 +731,24 @@ button {
 .management-row-actions{margin-left:auto!important;display:flex!important;flex-direction:row!important;gap:.35rem!important}.management-row-actions button{border:0;background:transparent;color:var(--blue);font-size:.72rem;font-weight:700;cursor:pointer}
 .lead-timeline{display:grid;gap:.55rem;max-height:220px;overflow:auto}.lead-timeline>div{display:grid;grid-template-columns:110px 1fr auto;gap:.6rem;padding:.55rem;border-bottom:1px solid var(--border);font-size:.78rem}.lead-timeline small{color:var(--muted)}
 
+.back-to-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--blue, #159bd3);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 1.2rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #e9f7fd;
+  border: 1px solid #bce3f5;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+.back-to-home-link:hover {
+  background: #d4effa;
+  color: #087bad;
+  transform: translateX(-3px);
+}
