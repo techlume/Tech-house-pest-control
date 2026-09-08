@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { MapPin, Pencil, Plus, Search, UserRoundCheck } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
+import { appAlert, appConfirm, appPrompt } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -178,25 +179,28 @@ export function CrmPage() {
     }
   };
   const convert = async (row) => {
-    if (!confirm(`Convert ${row.name} into a customer?`)) return;
+    const ok = await appConfirm(`Convert ${row.name} into a customer?`, { title: 'Convert lead' });
+    if (!ok) return;
     try {
       await http.post(`/leads/${row._id}/convert`, { state: 'Tamil Nadu' });
       await Promise.all([leads.reload(), customers.reload()]);
     } catch (x) {
-      alert(x.response?.data?.error?.message || 'Conversion failed');
+      await appAlert(x.response?.data?.error?.message || 'Conversion failed');
     }
   };
   const changeLeadStatus = async (row, status) => {
     if (!status) return;
     const lostReason =
-      status === 'Lost' ? prompt('Why was this lead lost?')?.trim() : undefined;
+      status === 'Lost'
+        ? (await appPrompt('Why was this lead lost?', { title: 'Mark lead as lost' }))?.trim()
+        : undefined;
     if (status === 'Lost' && !lostReason) return;
     setSaving(true);
     try {
       await http.patch('/leads/' + row._id, { status, lostReason });
       await leads.reload();
     } catch (x) {
-      alert(x.response?.data?.error?.message || 'Could not update lead');
+      await appAlert(x.response?.data?.error?.message || 'Could not update lead');
     } finally {
       setSaving(false);
     }

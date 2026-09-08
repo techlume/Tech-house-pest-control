@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, CalendarCheck, Clock3, FileWarning, IndianRupee, PackageSearch, Send, Users } from 'lucide-react';
 import { http } from '../services/http';
 import { useAuth } from '../context/AuthContext';
+import { appAlert } from '../lib/dialog';
 
 const money = (value) => '₹' + Number(value || 0).toLocaleString('en-IN');
 
@@ -25,9 +26,9 @@ export function DashboardPage() {
     setBusyId(invoice._id);
     try {
       const { data } = await http.post('/reports/reminders/invoices/' + invoice._id + '/send');
-      alert(data.message || 'Reminder sent');
+      await appAlert(data.message || 'Reminder sent');
     } catch (requestError) {
-      alert(requestError.response?.data?.error?.message || 'Could not send reminder');
+      await appAlert(requestError.response?.data?.error?.message || 'Could not send reminder');
     } finally {
       setBusyId('');
     }

@@ -4,6 +4,7 @@ import { Receipt } from '../models/Receipt.js';
 import { Customer } from '../models/Customer.js';
 import { Branch } from '../models/Branch.js';
 import { Company } from '../models/Company.js';
+import { Quotation } from '../models/Quotation.js';
 import {
   authenticate,
   allowRoles,
@@ -111,6 +112,59 @@ r.post(
       },
     });
     res.status(201).json({ invoice });
+  }),
+);
+r.post(
+  '/invoices/:id/convert-to-quotation',
+  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.SALESPERSON),
+  asyncHandler(async (req, res) => {
+    const invoice = await Invoice.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!invoice) throw new AppError(404, 'Invoice not found');
+    const customer = await Customer.findOne({ _id: invoice.customerId, companyId: invoice.companyId });
+    if (!customer) throw new AppError(404, 'Customer not found');
+    const property = customer.properties.find((p) => p.active !== false) || customer.properties[0];
+    if (!property)
+      throw new AppError(422, 'Add a property for this customer before converting an invoice to a quotation');
+
+    const validUntil = new Date();
+    validUntil.setDate(validUntil.getDate() + 15);
+
+    const lines = invoice.lines.map((line) => ({
+      serviceName: line.description,
+      description: 'Re-quoted from invoice ' + invoice.invoiceNo,
+      visits: 1,
+      quantity: line.quantity,
+      rate: line.rate,
+      taxRate: line.taxRate,
+      lineTotal: line.total,
+    }));
+    const subtotal = lines.reduce((a, l) => a + Number(l.quantity) * Number(l.rate), 0);
+
+    const scope = { companyId: invoice.companyId, branchId: invoice.branchId };
+    const quotation = await Quotation.create({
+      ...scope,
+      quotationNo: await nextReference(Quotation, scope, 'quotationNo', 'QUO'),
+      customerId: invoice.customerId,
+      propertyId: property._id,
+      status: 'Draft',
+      version: 1,
+      validUntil,
+      gstTreatment: invoice.gstTreatment,
+      taxType: invoice.taxType,
+      lines,
+      subtotal,
+      discountTotal: 0,
+      taxTotal: invoice.taxTotal,
+      grandTotal: invoice.grandTotal,
+      notes: invoice.notes,
+      terms: invoice.terms || 'Re-quoted from invoice ' + invoice.invoiceNo + '.',
+      createdBy: req.auth.userId,
+      updatedBy: req.auth.userId,
+    });
+    res.status(201).json({ quotation });
   }),
 );
 r.post(

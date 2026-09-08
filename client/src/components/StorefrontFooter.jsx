@@ -30,7 +30,6 @@ export function StorefrontFooter() {
             <li><a href="/about" style={{ color: '#cbd5e1', textDecoration: 'none' }}>About Tech House</a></li>
             <li><a href="/blog" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Knowledge Hub & Blog</a></li>
             <li><a href="/contact" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Contact & Regional Hubs</a></li>
-            <li><a href="/login" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Staff ERP Portal</a></li>
           </ul>
         </div>
 
@@ -45,9 +44,15 @@ export function StorefrontFooter() {
       </div>
 
       <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '24px', maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', fontSize: '12.5px', color: '#64748b' }}>
-        <div>© 2026 Tech House Ltd. All rights reserved. | ISO 9001:2026 Certified Pest Eradication.</div>
+        <div>
+          © {new Date().getFullYear()}{' '}
+          <a href="https://bmtechx.in" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>
+            Techlume Solutions (Freelancers)
+          </a>
+          . All rights reserved.
+        </div>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <a href="tel:18002122125" style={{ color: '#38bdf8', textDecoration: 'none' }}>Toll-Free: 1800-212-2125</a>
+          <span>| ISO 9001:2026 Certified Pest Eradication.</span>
           <span>•</span>
           <span>care@techhousepest.com</span>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRightLeft, Boxes, Plus, ShieldCheck } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
+import { appAlert, appPrompt } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -60,12 +61,12 @@ export function InventoryPage() {
     }
   };
   const review = async (record, status) => {
-    const reviewNote = prompt(status + ' note (optional)') || '';
+    const reviewNote = (await appPrompt(status + ' note (optional)', { title: 'Review adjustment', required: false })) || '';
     try {
       await http.patch('/inventory/adjustments/' + record._id + '/review', { status, reviewNote });
       await reloadAll();
     } catch (requestError) {
-      alert(requestError.response?.data?.error?.message || 'Review failed');
+      await appAlert(requestError.response?.data?.error?.message || 'Review failed');
     }
   };
   return (

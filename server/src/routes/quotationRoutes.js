@@ -3,6 +3,8 @@ import { Quotation } from '../models/Quotation.js';
 import { Customer } from '../models/Customer.js';
 import { Inspection } from '../models/Inspection.js';
 import { Company } from '../models/Company.js';
+import { Branch } from '../models/Branch.js';
+import { Invoice } from '../models/Invoice.js';
 import { authenticate, allowRoles, branchScope, customerDataScope } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -11,6 +13,8 @@ import { pagination, writeBranch } from '../utils/scope.js';
 import { AppError } from '../utils/AppError.js';
 import { assertTransition } from '../utils/workflow.js';
 import { sendDocumentEmail } from '../services/documentEmailService.js';
+import { calculateInvoice } from '../utils/billing.js';
+import { notifyCustomer } from '../services/notificationService.js';
 
 const router = Router();
 const editors = [ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON];
@@ -58,7 +62,9 @@ router.get(
     if (req.query.status) filter.status = req.query.status;
     const [items, total] = await Promise.all([
       Quotation.find(filter)
-        .populate('customerId', 'name customerNo')
+        .populate('customerId', 'name customerNo gstin billingAddress phone')
+        .populate('branchId', 'name gstin email phone address')
+        .populate('companyId', 'name legalName gstin email phone address')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -139,6 +145,91 @@ router.post(
       updatedBy: req.auth.userId,
     });
     res.status(201).json({ quotation });
+  }),
+);
+router.post(
+  '/:id/convert-to-invoice',
+  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON, ROLES.ACCOUNTANT),
+  asyncHandler(async (req, res) => {
+    const quotation = await Quotation.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!quotation) throw new AppError(404, 'Quotation not found');
+    if (quotation.status !== 'Accepted')
+      throw new AppError(409, 'Only an accepted quotation can be converted to an invoice');
+    if (await Invoice.exists({ quotationId: quotation._id }))
+      throw new AppError(409, 'This quotation was already converted to an invoice');
+
+    const [customer, branch] = await Promise.all([
+      Customer.findOne({ _id: quotation.customerId, companyId: quotation.companyId }),
+      Branch.findOne({ _id: quotation.branchId, companyId: quotation.companyId }),
+    ]);
+    if (!customer) throw new AppError(404, 'Customer not found');
+    if (!branch) throw new AppError(404, 'Branch not found');
+
+    const rawLines = quotation.lines.map((line) => {
+      const base = Number(line.quantity || 1) * Number(line.rate || 0);
+      const discount = Math.min(Number(line.discount || 0), base);
+      const netRate = Number(line.quantity) > 0 ? (base - discount) / Number(line.quantity) : Number(line.rate);
+      return {
+        description: line.serviceName + (line.description ? ' — ' + line.description : ''),
+        hsnSac: '998531',
+        quantity: line.quantity,
+        rate: netRate,
+        taxRate: line.taxRate,
+      };
+    });
+    const { lines, subtotal, taxTotal, grandTotal } = calculateInvoice(rawLines, quotation.gstTreatment);
+
+    const state = String(customer.billingAddress?.state || branch.address?.state || 'Tamil Nadu').trim();
+    const stateCode = quotation.gstTreatment === 'GST' ? '33' : '';
+    const sellerStateCode = String(branch.gstin || '').slice(0, 2);
+    const taxType =
+      quotation.gstTreatment === 'GST'
+        ? stateCode === sellerStateCode || !sellerStateCode
+          ? 'CGST+SGST'
+          : 'IGST'
+        : 'Exempt';
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + Number(customer.creditDays || 15));
+
+    const scope = { companyId: quotation.companyId, branchId: quotation.branchId };
+    const invoice = await Invoice.create({
+      ...scope,
+      invoiceNo: await nextReference(Invoice, scope, 'invoiceNo', 'INV'),
+      customerId: quotation.customerId,
+      quotationId: quotation._id,
+      dueDate,
+      gstTreatment: quotation.gstTreatment,
+      taxType,
+      placeOfSupply: { state, stateCode },
+      lines,
+      subtotal,
+      taxTotal,
+      grandTotal,
+      notes: quotation.notes,
+      terms: quotation.terms,
+      paidAmount: 0,
+      dueAmount: grandTotal,
+      status: 'Issued',
+      createdBy: req.auth.userId,
+      updatedBy: req.auth.userId,
+    });
+
+    quotation.status = 'Converted';
+    quotation.updatedBy = req.auth.userId;
+    await quotation.save();
+
+    await notifyCustomer(invoice.customerId, {
+      type: 'INVOICE_ISSUED',
+      title: 'New invoice issued',
+      message: invoice.invoiceNo + ' - Rs. ' + invoice.grandTotal.toLocaleString('en-IN'),
+      link: '/billing',
+    });
+
+    res.status(201).json({ invoice });
   }),
 );
 router.patch(

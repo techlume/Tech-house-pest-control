@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
+import { appAlert } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -113,10 +114,10 @@ export function InspectionsPage() {
         taxRate: 18,
         validDays: 15,
       });
-      alert('Draft quotation created.');
+      await appAlert('Draft quotation created.');
       await list.reload();
     } catch (x) {
-      alert(x.response?.data?.error?.message || 'Could not create quotation');
+      await appAlert(x.response?.data?.error?.message || 'Could not create quotation');
     }
   };
   return (

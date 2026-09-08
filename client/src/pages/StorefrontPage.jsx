@@ -8,8 +8,7 @@ import {
   Calculator,
   AlertTriangle,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
+  Plus,
   X,
   Copy,
   Check,
@@ -26,11 +25,19 @@ import {
   CheckSquare,
   Star,
   BookOpen,
+  Bug,
+  Rat,
+  Bird,
+  Droplets,
+  BedDouble,
+  Quote,
 } from 'lucide-react';
 import { http } from '../services/http';
 import { useAuth } from '../context/AuthContext';
+import { appAlert } from '../lib/dialog';
 import { ScrollToTopButton } from '../components/ScrollToTopButton';
 import { StorefrontFooter } from '../components/StorefrontFooter';
+import { InstantQuoteWidget } from '../components/InstantQuoteWidget';
 import '../storefront.css';
 
 export function StorefrontPage() {
@@ -42,6 +49,7 @@ export function StorefrontPage() {
   const [loading, setLoading] = useState(true);
   const [promoBarVisible, setPromoBarVisible] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   // Calculator State
   const [selectedService, setSelectedService] = useState('cockroach');
@@ -62,6 +70,14 @@ export function StorefrontPage() {
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(false);
 
+  // Instant Quote Widget selection (overrides the main calculator when set)
+  const [quickOrder, setQuickOrder] = useState(null);
+
+  const handleQuickBookNow = (order) => {
+    setQuickOrder(order);
+    setBookingModalOpen(true);
+  };
+
   const [bookingForm, setBookingForm] = useState({
     customerName: '',
     phone: '',
@@ -79,6 +95,17 @@ export function StorefrontPage() {
   useEffect(() => {
     fetchSiteConfig();
   }, []);
+
+  // Admin-managed hero banner images (with optional overlay quotes)
+  const enabledBanners = (config?.heroBanners || []).filter((b) => b.enabled && b.imageUrl);
+
+  useEffect(() => {
+    if (enabledBanners.length < 2) return;
+    const timer = setInterval(() => {
+      setActiveBannerIndex((idx) => (idx + 1) % enabledBanners.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [enabledBanners.length]);
 
   const fetchSiteConfig = async () => {
     try {
@@ -171,22 +198,32 @@ export function StorefrontPage() {
     e.preventDefault();
     setBookingLoading(true);
     try {
-      const payload = {
-        ...bookingForm,
-        premiseType: currentAllotment.label,
-        sqft,
-        serviceCategory: currentService.name,
-        packageType: packageType === 'amc' ? '1-Year AMC (3 Visits)' : 'Single Service Knockdown',
-        totalAmount: grandTotal,
-        discountApplied: promo.discountPercent,
-      };
+      const payload = quickOrder
+        ? {
+            ...bookingForm,
+            premiseType: quickOrder.sqftLabel,
+            sqft,
+            serviceCategory: quickOrder.serviceName,
+            packageType: quickOrder.serviceType,
+            totalAmount: quickOrder.finalPrice || 0,
+            discountApplied: quickOrder.discountApplied,
+          }
+        : {
+            ...bookingForm,
+            premiseType: currentAllotment.label,
+            sqft,
+            serviceCategory: currentService.name,
+            packageType: packageType === 'amc' ? '1-Year AMC (3 Visits)' : 'Single Service Knockdown',
+            totalAmount: grandTotal,
+            discountApplied: promo.discountPercent,
+          };
 
       const res = await http.post('/site-config/bookings', payload);
       if (res.data?.success) {
         setBookingSuccess(res.data);
       }
     } catch (err) {
-      alert(err?.response?.data?.message || 'Booking failed. Please try again.');
+      await appAlert(err?.response?.data?.message || 'Booking failed. Please try again.');
     } finally {
       setBookingLoading(false);
     }
@@ -230,24 +267,52 @@ export function StorefrontPage() {
 
   const faqs = [
     {
+      q: 'How much does pest control cost in your service areas?',
+      a: 'Pricing depends on the pest type, property size, and whether you choose a single visit or an AMC plan. Use the Instant Quote widget above or our Price Calculator to get an exact, no-obligation figure in seconds.',
+    },
+    {
+      q: 'What is pest control or pest treatment?',
+      a: 'Pest control is the scientific process of inspecting, targeting, and eliminating insects, rodents, and other pests using approved chemical, mechanical, or biological methods, followed by preventive measures to stop them returning.',
+    },
+    {
+      q: 'How do I get started with pest control from Tech House?',
+      a: 'Simply pick your service and property size in the Instant Quote widget, confirm your booking, and our certified technician will visit on your chosen date and time slot.',
+    },
+    {
+      q: 'What should I do if I have insects in my house?',
+      a: 'Avoid using random over-the-counter sprays as they can scatter colonies. Book a professional inspection so we can identify the exact species and apply a targeted, safe treatment.',
+    },
+    {
+      q: 'How often should pest control be done?',
+      a: 'For most homes we recommend a treatment every 3 to 4 months, which is exactly what our 1-Year AMC plan covers with 3 scheduled visits and unlimited complaint callouts.',
+    },
+    {
+      q: 'How does pest control work?',
+      a: 'Our technicians inspect the property, identify entry points and nesting zones, then apply a mix of gel baiting, spraying, or drill-fill-seal treatment depending on the pest, followed by a preventive barrier.',
+    },
+    {
       q: 'Are the pest control chemicals safe for my children and pets?',
       a: 'Yes, absolutely. We use 100% odourless, government-approved (CIB certified) Bayer & Syngenta gel baiting formulations. There are no harmful chemical fumes, so children, elderly family members, and pets do not need to leave the house.',
+    },
+    {
+      q: 'Is paying for pest control worth it?',
+      a: 'Yes — untreated infestations damage furniture, contaminate food, and pose health risks. A single AMC plan typically costs far less than the repairs or medical costs caused by a prolonged infestation.',
     },
     {
       q: 'Do I need to empty my kitchen cabinets before the treatment?',
       a: 'No! Our Blitz Intensive Gel Treatment requires ZERO kitchen emptying. Our technicians apply precise gel points in cabinet hinges, drawers, and under sinks without disturbing your kitchen items.',
     },
     {
-      q: 'What is covered under the 1-Year AMC (Annual Maintenance Contract)?',
-      a: 'The 1-Year AMC covers 3 scheduled intensive service visits per year (once every 4 months), plus UNLIMITED free complaint re-treatments whenever you spot any pest recurrence during the 365-day contract period.',
+      q: 'How has Tech House Pest Control guaranteed protection?',
+      a: 'Every AMC plan comes with a written warranty period. If pests reappear within that window, we send a technician for a free re-treatment at no extra cost — we only guarantee inspection and re-treatment, not refunds.',
     },
     {
-      q: 'How quickly does the cockroach gel start working?',
-      a: 'The gel formulation acts via domino cascade effect. Pests eat the bait, return to their nests, and eliminate the entire colony within 48 to 72 hours.',
+      q: 'Which insects are covered under the Tech House service plan?',
+      a: 'Our plans cover cockroaches, termites, bed bugs, spiders, mosquitoes, rats, ants, and general household insects. Virus disinfection and fly control are also available as add-on services.',
     },
     {
-      q: 'How does the 3-Year Anti-Termite Drill-Fill-Seal warranty work?',
-      a: 'Technicians drill small 45° holes at 1-foot intervals along wall junctions, inject termiticide chemical barriers into subterranean soil layers, and seal the holes with color-matched cement plugs. If termites re-appear during 3 years, we provide 100% free callouts.',
+      q: 'How does the Anti-Termite Drill-Fill-Seal warranty work?',
+      a: 'Technicians drill small 45° holes at 1-foot intervals along wall junctions, inject termiticide chemical barriers into subterranean soil layers, and seal the holes with colour-matched cement plugs. If termites re-appear during the warranty period, we provide free callouts.',
     },
   ];
 
@@ -257,37 +322,63 @@ export function StorefrontPage() {
       desc: 'Domino cascade gel baiting & zero kitchen cabinet emptying.',
       link: '/services/cockroach',
       badge: 'Bayer Gel Tech',
+      icon: Bug,
+      tint: '#159bd3',
     },
     {
       title: 'Termite Protection',
       desc: 'Subterranean Drill-Fill-Seal barrier & 3-Year Warranty cover.',
       link: '/services/termite',
       badge: '3-Year Warranty',
+      icon: ShieldCheck,
+      tint: '#087bad',
     },
     {
       title: 'Rodent & Rat Defense',
       desc: 'Lockable tamper-proof bait stations & electrical wire shielding.',
       link: '/services/rodent',
       badge: 'Wire Shield',
+      icon: Rat,
+      tint: '#063d59',
     },
     {
       title: 'Mosquito Vector Defense',
       desc: '3-Way ULV thermal cold fogging & anti-larval water granules.',
       link: '/services/mosquito',
       badge: 'Dengue Shield',
+      icon: Droplets,
+      tint: '#0891b2',
     },
     {
       title: 'Bed Bug Removal',
       desc: '2-session super-heated thermal steam & 90-day guarantee.',
       link: '/services/bed-bug',
       badge: '90-Day Guarantee',
+      icon: BedDouble,
+      tint: '#7c3aed',
     },
     {
       title: 'Bird Netting & Spikes',
       desc: 'Garware HDPE UV-treated balcony nets & SS304 spikes.',
       link: '/services/bird-control',
       badge: 'Garware HDPE',
+      icon: Bird,
+      tint: '#9bd51c',
     },
+  ];
+
+  const industries = [
+    'Hospitality',
+    'Residential Area',
+    'Factory Canteens',
+    'Beverage Processing',
+    'Pharmaceutical Industries',
+    'Packaging Material Industries',
+    'Banks',
+    'Schools',
+    'Corporate Offices',
+    'Food Processing Industries',
+    'Food Packaging Industries',
   ];
 
   const sectors = [
@@ -305,20 +396,30 @@ export function StorefrontPage() {
       city: 'Mumbai',
       stars: 5,
       comment: 'Tech House cockroach gel treatment completely eliminated cockroaches in our 3 BHK kitchen within 2 days! Zero smell and no need to remove utensils.',
+      color: '#159bd3',
     },
     {
       name: 'Priya Nair',
       city: 'Bangalore',
       stars: 5,
       comment: 'The 3-Year Termite Drill-Fill-Seal service was executed neatly. The technicians sealed all drilled holes with matching cement plugs. Very professional!',
+      color: '#7c3aed',
     },
     {
       name: 'Amitabh Gupta',
       city: 'Delhi NCR',
       stars: 5,
       comment: 'Garware bird netting installed on our 4th floor balcony has kept pigeons away completely. Sturdy quality and quick installation within 3 hours.',
+      color: '#9bd51c',
     },
   ];
+  const initialsOf = (name) =>
+    name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
 
   const cities = ['Mumbai', 'Navi Mumbai', 'Thane', 'Pune', 'Delhi NCR', 'Bangalore', 'Chennai', 'Hyderabad', 'Kolkata', 'Ahmedabad'];
 
@@ -373,9 +474,45 @@ export function StorefrontPage() {
         </div>
       </header>
 
+      {/* 2B. ADMIN-MANAGED PHOTO BANNER WITH OVERLAY QUOTE */}
+      {enabledBanners.length > 0 && (
+        <section className="sf-photo-banner">
+          {enabledBanners.map((banner, idx) => (
+            <div
+              key={idx}
+              className={`sf-photo-banner-slide ${idx === activeBannerIndex % enabledBanners.length ? 'active' : ''}`}
+              style={{ backgroundImage: `url(${banner.imageUrl})` }}
+            />
+          ))}
+          <div className="sf-photo-banner-scrim" />
+          {enabledBanners[activeBannerIndex % enabledBanners.length]?.quote && (
+            <blockquote className="sf-photo-banner-quote">
+              <Quote size={22} />
+              <p>{enabledBanners[activeBannerIndex % enabledBanners.length].quote}</p>
+              {enabledBanners[activeBannerIndex % enabledBanners.length].quoteAuthor && (
+                <cite>{enabledBanners[activeBannerIndex % enabledBanners.length].quoteAuthor}</cite>
+              )}
+            </blockquote>
+          )}
+          {enabledBanners.length > 1 && (
+            <div className="sf-photo-banner-dots">
+              {enabledBanners.map((_, idx) => (
+                <button
+                  key={idx}
+                  className={idx === activeBannerIndex % enabledBanners.length ? 'active' : ''}
+                  onClick={() => setActiveBannerIndex(idx)}
+                  aria-label={`Show banner ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* 3. HERO & DYNAMIC CALCULATOR SECTION */}
-      <section className="sf-hero sf-reveal" id="calculator">
-        <div>
+      <div className="sf-hero-backdrop" id="calculator">
+        <section className="sf-hero sf-reveal">
+        <div className="sf-hero-left">
           <div className="sf-hero-tag">
             <ShieldCheck size={15} />
             <span>ISO 9001:2026 Certified Science-Led Platform</span>
@@ -414,6 +551,19 @@ export function StorefrontPage() {
               <h4>Property Damage</h4>
               <p>Termites & wood borers hollow out furniture, doors, and flooring unnoticed.</p>
             </div>
+          </div>
+
+          {/* Instant Quote Widget — fills the remaining hero column height */}
+          <div className="sf-hero-instant-quote">
+            <div className="sf-hero-tag">
+              <Zap size={15} />
+              <span>3-Click Instant Pricing</span>
+            </div>
+            <h2 className="sf-hero-instant-quote-title">Not Sure Which Plan You Need?</h2>
+            <p className="sf-hero-instant-quote-sub">
+              Pick your pest, your service type, and your property size — get an instant, transparent price with ₹500 OFF applied automatically.
+            </p>
+            <InstantQuoteWidget onBookNow={handleQuickBookNow} config={config?.instantQuote} />
           </div>
         </div>
 
@@ -541,8 +691,19 @@ export function StorefrontPage() {
             <span>BOOK SERVICE NOW</span>
             <ArrowRight size={18} />
           </button>
+
+          <div className="sf-calc-trust">
+            <span className="sf-calc-trust-title">What's Included</span>
+            <ul>
+              <li><CheckCircle2 size={15} /> 100% Odourless &amp; Pet-Safe Formulations</li>
+              <li><CheckCircle2 size={15} /> CIB-Approved Bayer &amp; Syngenta Chemicals</li>
+              <li><CheckCircle2 size={15} /> Certified, Background-Verified Technicians</li>
+              <li><CheckCircle2 size={15} /> 365-Day Re-Treatment Warranty on AMC Plans</li>
+            </ul>
+          </div>
         </div>
-      </section>
+        </section>
+      </div>
 
       {/* 4. EMERGENCY 24/7 CALL-BACK BANNER */}
       <section className="sf-reveal" style={{ background: 'linear-gradient(135deg, #063d59 0%, #087bad 100%)', padding: '30px 24px', color: '#fff', borderRadius: '24px', maxWidth: '1280px', margin: '20px auto', boxShadow: '0 8px 24px rgba(6,61,89,0.15)' }}>
@@ -629,9 +790,23 @@ export function StorefrontPage() {
           {serviceGrid.map((item, idx) => (
             <div key={idx} style={{ background: '#ffffff', borderRadius: '20px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <span
+                    style={{
+                      width: '52px',
+                      height: '52px',
+                      borderRadius: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: `linear-gradient(145deg, ${item.tint}22, ${item.tint}0d)`,
+                      color: item.tint,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <item.icon size={26} />
+                  </span>
                   <span style={{ background: '#e9f7fd', color: '#159bd3', fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>{item.badge}</span>
-                  <Zap size={16} style={{ color: '#159bd3' }} />
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#063d59', marginBottom: '8px' }}>{item.title}</h3>
                 <p style={{ fontSize: '13.5px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>{item.desc}</p>
@@ -679,8 +854,19 @@ export function StorefrontPage() {
         </div>
       </section>
 
-      {/* 8. COMMERCIAL VS RESIDENTIAL SECTORS */}
-      <section className="sf-section sf-reveal" id="sectors">
+      {/* 8. INDUSTRIES WE SERVE — PROTECTING EVERY SECTOR (pill grid) */}
+      <section className="sf-industries sf-reveal" id="sectors">
+        <div className="sf-industries-eyebrow">Industries We Serve</div>
+        <h2 className="sf-industries-title">Protecting Every Sector</h2>
+        <div className="sf-industries-pills">
+          {industries.map((label, idx) => (
+            <span key={idx} className="sf-industry-pill">{label}</span>
+          ))}
+        </div>
+      </section>
+
+      {/* 8B. CUSTOMIZED SECTOR SOLUTIONS (detail cards) */}
+      <section className="sf-section sf-reveal">
         <h2 className="sf-section-title">Customized Sector Solutions</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
           {sectors.map((sec, idx) => (
@@ -755,11 +941,33 @@ export function StorefrontPage() {
                   <Star key={i} size={16} fill="#f59e0b" />
                 ))}
               </div>
-              <p style={{ fontSize: '13.5px', color: '#334155', lineHeight: '1.6', marginBottom: '16px' }}>"{t.comment}"</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12.5px' }}>
-                <strong style={{ color: '#063d59' }}>{t.name} ({t.city})</strong>
-                <span style={{ color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <CheckCircle2 size={13} /> Verified Booking
+              <p style={{ fontSize: '13.5px', color: '#334155', lineHeight: '1.6', marginBottom: '18px' }}>"{t.comment}"</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: t.color,
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {initialsOf(t.name)}
+                  </span>
+                  <div style={{ fontSize: '12.5px' }}>
+                    <strong style={{ display: 'block', color: '#063d59' }}>{t.name}</strong>
+                    <span style={{ color: '#94a3b8' }}>{t.city}</span>
+                  </div>
+                </div>
+                <span style={{ color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11.5px' }}>
+                  <CheckCircle2 size={13} /> Verified
                 </span>
               </div>
             </div>
@@ -779,15 +987,18 @@ export function StorefrontPage() {
         </div>
       </section>
 
-      {/* 13. FAQS ACCORDION */}
+      {/* 13. FAQS — TWO COLUMN ACCORDION */}
       <section className="sf-section sf-reveal" id="faqs">
-        <h2 className="sf-section-title">Frequently Asked Questions</h2>
-        <div className="sf-faq-list">
+        <div className="sf-section-title-wrap">
+          <h2>Frequently Asked Questions</h2>
+          <div className="sf-section-title-underline" />
+        </div>
+        <div className="sf-faq-list sf-faq-grid">
           {faqs.map((faq, idx) => (
-            <div key={idx} className="sf-faq-item">
+            <div key={idx} className={`sf-faq-item ${openFaqIndex === idx ? 'open' : ''}`}>
               <div className="sf-faq-q" onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}>
                 <span>{faq.q}</span>
-                {openFaqIndex === idx ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                <span className="sf-faq-toggle-icon"><Plus size={15} /></span>
               </div>
               {openFaqIndex === idx && <div className="sf-faq-a">{faq.a}</div>}
             </div>
@@ -811,6 +1022,7 @@ export function StorefrontPage() {
                 onClick={() => {
                   setBookingModalOpen(false);
                   setBookingSuccess(null);
+                  setQuickOrder(null);
                 }}
               >
                 <X size={20} />
@@ -833,6 +1045,7 @@ export function StorefrontPage() {
                   onClick={() => {
                     setBookingModalOpen(false);
                     setBookingSuccess(null);
+                    setQuickOrder(null);
                   }}
                 >
                   Done
@@ -841,7 +1054,15 @@ export function StorefrontPage() {
             ) : (
               <form onSubmit={handleBookingSubmit}>
                 <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', color: '#38bdf8' }}>
-                  <strong>Selected Order:</strong> {currentService.name} ({currentAllotment.label} - {sqft} sqft) | Package: {packageType === 'amc' ? '1-Year AMC (3 Visits)' : 'Single Service'} | Total: <strong>₹{grandTotal.toLocaleString('en-IN')}</strong>
+                  {quickOrder ? (
+                    <>
+                      <strong>Selected Order:</strong> {quickOrder.serviceName} — {quickOrder.serviceType} ({quickOrder.sqftLabel}) | {quickOrder.callBackOnly ? 'Our team will call you with a custom quote.' : <>Total: <strong>₹{quickOrder.finalPrice?.toLocaleString('en-IN')}</strong></>}
+                    </>
+                  ) : (
+                    <>
+                      <strong>Selected Order:</strong> {currentService.name} ({currentAllotment.label} - {sqft} sqft) | Package: {packageType === 'amc' ? '1-Year AMC (3 Visits)' : 'Single Service'} | Total: <strong>₹{grandTotal.toLocaleString('en-IN')}</strong>
+                    </>
+                  )}
                 </div>
 
                 <div className="sf-form-group">

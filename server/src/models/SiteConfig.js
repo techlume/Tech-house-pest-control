@@ -47,6 +47,38 @@ const siteConfigSchema = new mongoose.Schema(
         includedFeatures: [{ type: String }],
       },
     ],
+    heroBanners: [
+      {
+        imageUrl: { type: String, required: true },
+        quote: { type: String, default: '' },
+        quoteAuthor: { type: String, default: '' },
+        enabled: { type: Boolean, default: true },
+      },
+    ],
+    instantQuote: {
+      discountFlat: { type: Number, default: 500 },
+      promoTitle: { type: String, default: 'Here, One Stop Pest Solution' },
+      promoSubtitle: { type: String, default: '#terms & conditions apply' },
+      sqftBrackets: [
+        {
+          label: { type: String, required: true },
+          multiplier: { type: Number, default: null },
+          callOnly: { type: Boolean, default: false },
+        },
+      ],
+      services: [
+        {
+          label: { type: String, required: true },
+          basePrice: { type: Number, required: true },
+          types: [
+            {
+              label: { type: String, required: true },
+              multiplier: { type: Number, default: 1 },
+            },
+          ],
+        },
+      ],
+    },
   },
   { timestamps: true },
 );
