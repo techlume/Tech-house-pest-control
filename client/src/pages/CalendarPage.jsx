@@ -4,6 +4,7 @@ import { useApiList } from '../hooks/useApiList';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
 import { http } from '../services/http';
+import { appAlert } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 const toLocalInput = (value) => {
   const date = new Date(value);
@@ -25,7 +26,7 @@ export function CalendarPage() {
       setSelected(null);
       await visits.reload();
     } catch (x) {
-      alert(x.response?.data?.error?.message || 'Could not reschedule visit');
+      await appAlert(x.response?.data?.error?.message || 'Could not reschedule visit');
     } finally {
       setSaving(false);
     }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera, CheckCircle2, Eye, MapPin, Navigation, Play, Printer, UserPlus } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
+import { appAlert } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -114,7 +115,7 @@ export function JobCardsPage() {
       await visits.reload();
       setModal(null);
     } catch (x) {
-      alert(x.response?.data?.error?.message || x.message || 'Action failed');
+      await appAlert(x.response?.data?.error?.message || x.message || 'Action failed');
     } finally {
       setSaving(false);
     }
@@ -173,7 +174,7 @@ export function JobCardsPage() {
       setModal(null);
       await Promise.all([visits.reload(), jobs.reload()]);
     } catch (x) {
-      alert(x.response?.data?.error?.message || 'Completion failed');
+      await appAlert(x.response?.data?.error?.message || 'Completion failed');
     } finally {
       setSaving(false);
     }

@@ -16,6 +16,7 @@ import {
 import { http } from '../../services/http';
 import { ScrollToTopButton } from '../../components/ScrollToTopButton';
 import { StorefrontFooter } from '../../components/StorefrontFooter';
+import { appAlert } from '../../lib/dialog';
 
 export function MosquitoServicePage() {
   const [copied, setCopied] = useState(false);
@@ -88,7 +89,7 @@ export function MosquitoServicePage() {
       }
     } catch (err) {
       console.error('Booking failed:', err);
-      alert(err.response?.data?.message || 'Failed to submit booking. Please call 1800-212-2125.');
+      await appAlert(err.response?.data?.message || 'Failed to submit booking. Please call 1800-212-2125.');
     } finally {
       setSubmitting(false);
     }

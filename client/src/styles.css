@@ -1,4 +1,3 @@
-@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap");
 :root {
   font-family: "DM Sans", sans-serif;
@@ -563,32 +562,27 @@ button {
     grid-template-columns: 1fr;
   }
   .table-card table,
-  .invoice-document,
+  .quote-document,
   .service-report-document {
     min-width: 100%;
   }
   .table-card,
-  .invoice-document,
+  .quote-document,
   .service-report-document,
   .modal {
     border-radius: 0;
   }
-  .invoice-document,
+  .quote-document,
   .service-report-document {
     padding: 1rem;
   }
-  .invoice-document header,
-  .invoice-parties,
   .service-report-document header,
   .report-facts {
     flex-direction: column;
     gap: 0.85rem;
   }
-  .invoice-document header > div:last-child,
-  .invoice-parties > div:last-child {
-    text-align: left;
-  }
-  .invoice-totals {
+  .quote-doc-totals {
+    min-width: 0;
     max-width: none;
   }
   .lead-timeline > div,
@@ -726,7 +720,42 @@ button {
 .form-success{padding:.75rem;border-radius:9px;background:#ecfdf3;color:#067647;font-size:.84rem}.otp-actions{display:flex;gap:.5rem;margin-top:.5rem}.otp-actions button,.verify-email-link{border:0;background:transparent;color:var(--blue);font-weight:700;cursor:pointer}.otp-actions button{padding:.35rem 0}.verify-email-link{width:100%;padding:.55rem}
 .inline-transition{display:block;margin-top:.35rem;max-width:145px;padding:.35rem;font-size:.75rem}.record-actions{display:flex;gap:.45rem;margin-top:.8rem}.record-actions button{border:1px solid var(--border);border-radius:8px;background:#fff;padding:.45rem .7rem;cursor:pointer}
 .calendar-action{border:0;background:transparent;color:var(--blue);font-size:.75rem;font-weight:700;cursor:pointer;padding:.25rem 0}
-.invoice-document{background:#fff;color:#17202a;padding:1.25rem;min-width:min(720px,80vw)}.invoice-document header,.invoice-parties{display:flex;justify-content:space-between;gap:2rem;border-bottom:1px solid #d9e2e8;padding-bottom:1rem}.invoice-document header>div,.invoice-parties>div{display:grid;gap:.3rem}.invoice-document header>div:last-child{text-align:right}.invoice-parties{padding:1rem 0}.invoice-document table{width:100%;border-collapse:collapse;margin:1rem 0}.invoice-document th,.invoice-document td{padding:.65rem;border:1px solid #d9e2e8;text-align:left}.invoice-totals{margin-left:auto;max-width:320px;display:grid;gap:.45rem}.invoice-totals span{display:flex;justify-content:space-between}.invoice-totals .grand{font-size:1.08rem;border-top:2px solid #17202a;padding-top:.5rem}.invoice-document footer{text-align:center;color:#667085;border-top:1px solid #d9e2e8;margin-top:1.5rem;padding-top:1rem}.invoice-print-action{margin-top:1rem}@media print{body *{visibility:hidden}.invoice-document,.invoice-document *{visibility:visible}.invoice-document{position:absolute;inset:0;min-width:100%;padding:12mm}.invoice-print-action{display:none!important}}
+.invoice-print-action{margin-top:1rem;gap:.6rem}
+
+/* Swipe-style quotation / tax invoice document (matches the reference EST-3 layout) */
+.quote-document{background:#fff;color:#17202a;padding:1.5rem;min-width:min(760px,85vw);font-size:.86rem;border:1px solid #d9e2e8}
+.quote-doc-kicker{display:flex;justify-content:space-between;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#5c7080;border-bottom:2px solid #17202a;padding-bottom:.6rem;margin-bottom:1rem}
+.quote-doc-header{display:flex;justify-content:space-between;gap:1.5rem;border-bottom:1px solid #d9e2e8;padding-bottom:1rem;margin-bottom:1rem}
+.quote-doc-brand{display:flex;gap:.85rem;align-items:flex-start}
+.quote-doc-logo{width:52px;height:52px;object-fit:contain;border-radius:10px;background:#f4f7f6;padding:4px;flex-shrink:0}
+.quote-doc-brand h2{margin:0 0 .3rem;font-size:1.05rem;color:#063d59}
+.quote-doc-brand p{margin:0;font-size:.78rem;color:#4b5b63;line-height:1.5}
+.quote-doc-meta{display:grid;gap:.4rem;text-align:right;min-width:200px}
+.quote-doc-meta div{display:flex;justify-content:space-between;gap:.75rem;font-size:.78rem}
+.quote-doc-meta span{color:#5c7080}
+.quote-doc-meta strong{color:#17202a}
+.quote-doc-customer{display:grid;gap:.25rem;padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid #d9e2e8;font-size:.82rem}
+.quote-doc-customer>span:first-child{color:#5c7080;font-weight:700;text-transform:uppercase;font-size:.7rem;letter-spacing:.03em}
+.quote-doc-billing-label{margin-top:.3rem;color:#5c7080;font-weight:700;text-transform:uppercase;font-size:.7rem;letter-spacing:.03em}
+.quote-doc-table{width:100%;border-collapse:collapse;margin-bottom:1rem}
+.quote-doc-table th,.quote-doc-table td{padding:.6rem .65rem;border:1px solid #d9e2e8;text-align:left;font-size:.8rem;vertical-align:top}
+.quote-doc-table thead th{background:#f4f7f6;font-size:.72rem;text-transform:uppercase;letter-spacing:.02em;color:#4b5b63}
+.quote-doc-item-desc{margin-top:.3rem;color:#5c7080;font-size:.76rem;line-height:1.5}
+.quote-doc-summary-row{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.quote-doc-summary-row>span{color:#5c7080;font-size:.78rem;padding-top:.2rem}
+.quote-doc-totals{margin-left:auto;min-width:260px;display:grid;gap:.4rem}
+.quote-doc-totals span{display:flex;justify-content:space-between;font-size:.82rem}
+.quote-doc-totals .grand{font-size:1.05rem;font-weight:800;border-top:2px solid #17202a;padding-top:.5rem;margin-top:.2rem}
+.quote-doc-words{margin-top:1rem;padding-top:.75rem;border-top:1px solid #d9e2e8;font-size:.8rem;font-style:italic;color:#334155}
+.quote-doc-payment{display:flex;gap:1.5rem;margin-top:.6rem;font-size:.82rem}
+.quote-doc-signature{display:flex;justify-content:space-between;align-items:flex-end;margin-top:2.5rem;padding-top:.5rem;font-size:.82rem;font-weight:700;color:#063d59}
+.quote-doc-notes{display:grid;grid-template-columns:1fr 1.4fr;gap:1.5rem;margin-top:1.5rem;padding-top:1rem;border-top:1px solid #d9e2e8;font-size:.76rem;color:#4b5b63}
+.quote-doc-notes h4{margin:0 0 .4rem;font-size:.78rem;color:#17202a}
+.quote-doc-notes ul{margin:0;padding-left:1.1rem;display:grid;gap:.3rem;line-height:1.5}
+.quote-doc-notes p{margin:0;line-height:1.5}
+.quote-doc-footer{text-align:center;color:#8a97a0;border-top:1px solid #d9e2e8;margin-top:1.5rem;padding-top:.85rem;font-size:.72rem;display:grid;gap:.2rem}
+@media print{body *{visibility:hidden}.quote-document,.quote-document *{visibility:visible}.quote-document{position:absolute;inset:0;min-width:100%;padding:12mm;border:0}.invoice-print-action{display:none!important}}
+@media (max-width:720px){.quote-doc-header,.quote-doc-notes{grid-template-columns:1fr;display:grid}.quote-doc-meta{text-align:left}.quote-doc-meta div{justify-content:flex-start}.quote-doc-signature{flex-direction:column;gap:.5rem;align-items:flex-start}}
 .service-report-document{background:#fff;color:#17202a;padding:1.25rem;min-width:min(720px,80vw)}.service-report-document header,.report-facts{display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid #d9e2e8;padding-bottom:1rem}.service-report-document header>div,.report-facts>div{display:grid;gap:.25rem}.service-report-document section{padding:1rem 0;border-bottom:1px solid #edf1f3}.service-report-document table{width:100%;border-collapse:collapse}.service-report-document th,.service-report-document td{padding:.6rem;border:1px solid #d9e2e8;text-align:left}.service-report-document footer{padding-top:1rem;color:#667085}.report-print-action{margin-top:1rem}@media print{.service-report-document,.service-report-document *{visibility:visible}.service-report-document{position:absolute;inset:0;min-width:100%;padding:12mm}.report-print-action{display:none!important}}
 .management-row-actions{margin-left:auto!important;display:flex!important;flex-direction:row!important;gap:.35rem!important}.management-row-actions button{border:0;background:transparent;color:var(--blue);font-size:.72rem;font-weight:700;cursor:pointer}
 .lead-timeline{display:grid;gap:.55rem;max-height:220px;overflow:auto}.lead-timeline>div{display:grid;grid-template-columns:110px 1fr auto;gap:.6rem;padding:.55rem;border-bottom:1px solid var(--border);font-size:.78rem}.lead-timeline small{color:var(--muted)}

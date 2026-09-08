@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertCircle, Clock, Plus } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
+import { appAlert } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -78,7 +79,7 @@ export function ComplaintsPage() {
       const detail =
         x.response?.data?.error?.message || 'Could not update complaint';
       setError(detail);
-      if (!resolving) alert(detail);
+      if (!resolving) await appAlert(detail);
     } finally {
       setSaving(false);
     }

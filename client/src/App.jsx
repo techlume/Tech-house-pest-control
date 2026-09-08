@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AppLayout } from './components/AppLayout';
+import { DialogHost } from './lib/dialog';
 import { StorefrontPage } from './pages/StorefrontPage';
 import { SiteSettingsPage } from './pages/SiteSettingsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -40,6 +41,7 @@ import { CookiePolicyPage } from './pages/CookiePolicyPage';
 export default function App() {
   return (
     <AuthProvider>
+      <DialogHost />
       <BrowserRouter>
         <Routes>
           {/* Main D2C Customer Storefront Routes */}

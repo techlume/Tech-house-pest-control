@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Building2, Pencil, Plus, Settings, UserCog } from 'lucide-react';
 import { http } from '../services/http';
 import { useAuth } from '../context/AuthContext';
+import { appAlert } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 
 const roles = [
@@ -119,7 +120,7 @@ export function ManagementPage() {
       await http.patch('/users/' + user._id, { active: !user.active });
       await load();
     } catch (x) {
-      alert(x.response?.data?.error?.message || 'Could not update user');
+      await appAlert(x.response?.data?.error?.message || 'Could not update user');
     }
   };
   const saveResetPassword = async (e) => {
@@ -132,7 +133,7 @@ export function ManagementPage() {
       });
       setResetUser(null);
       setResetPassword('');
-      alert('Password reset. Existing sessions were revoked.');
+      await appAlert('Password reset. Existing sessions were revoked.');
     } catch (x) {
       setError(x.response?.data?.error?.message || 'Could not reset password');
     } finally {

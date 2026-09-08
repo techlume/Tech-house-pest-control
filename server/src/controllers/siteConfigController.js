@@ -5,6 +5,24 @@ import { Customer } from '../models/Customer.js';
 import { Company } from '../models/Company.js';
 import { Branch } from '../models/Branch.js';
 import { User } from '../models/User.js';
+import { AppError } from '../utils/AppError.js';
+
+const MAX_BANNER_IMAGE_BYTES = 1_800_000; // ~1.8MB raw per banner image
+const BANNER_DATA_URI_PATTERN = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=\r\n]+)$/;
+
+function assertValidHeroBanners(heroBanners) {
+  if (!Array.isArray(heroBanners)) return;
+  if (heroBanners.length > 8) throw new AppError(422, 'A maximum of 8 hero banners is supported', 'TOO_MANY_BANNERS');
+  for (const banner of heroBanners) {
+    if (!banner?.imageUrl) throw new AppError(422, 'Each hero banner requires an image', 'INVALID_BANNER');
+    const match = banner.imageUrl.match(BANNER_DATA_URI_PATTERN);
+    if (!match) continue; // already a hosted URL (e.g. re-saving an existing banner) — nothing to validate
+    const approxBytes = (match[2].length * 3) / 4;
+    if (approxBytes > MAX_BANNER_IMAGE_BYTES) {
+      throw new AppError(422, 'Banner images must be under 1.8MB each — please compress the image and try again', 'BANNER_TOO_LARGE');
+    }
+  }
+}
 
 const DEFAULT_CONFIG = {
   key: 'default_config',
@@ -86,6 +104,82 @@ const DEFAULT_CONFIG = {
       description: 'Office Suite, Restaurant, Warehouse & Retail Store',
     },
   ],
+  heroBanners: [],
+  instantQuote: {
+    discountFlat: 500,
+    promoTitle: 'Here, One Stop Pest Solution',
+    promoSubtitle: '#terms & conditions apply',
+    sqftBrackets: [
+      { label: '0 - 250 sqft', multiplier: 0.35, callOnly: false },
+      { label: '250 - 500 sqft', multiplier: 0.5, callOnly: false },
+      { label: '500 - 750 sqft', multiplier: 0.65, callOnly: false },
+      { label: '750 - 1000 sqft', multiplier: 1, callOnly: false },
+      { label: '1000 - 1250 sqft', multiplier: 1.18, callOnly: false },
+      { label: '1250 - 1500 sqft', multiplier: 1.35, callOnly: false },
+      { label: '1500 - 1750 sqft', multiplier: 1.55, callOnly: false },
+      { label: '1750 - 2000 sqft', multiplier: 1.75, callOnly: false },
+      { label: '> 2000 sqft - Book For Call', multiplier: null, callOnly: true },
+    ],
+    services: [
+      {
+        label: 'Termite Service',
+        basePrice: 8400,
+        types: [
+          { label: 'Initial Service & 2 Year Warranty', multiplier: 1 },
+          { label: 'Initial Service & 5 Year Warranty', multiplier: 1.4 },
+        ],
+      },
+      {
+        label: 'Cockroach Service',
+        basePrice: 2400,
+        types: [
+          { label: 'Single Service', multiplier: 1 },
+          { label: 'AMC - 3 Visits / Year', multiplier: 2.3 },
+        ],
+      },
+      {
+        label: 'Bed Bug Service',
+        basePrice: 3600,
+        types: [
+          { label: 'Single Service', multiplier: 1 },
+          { label: '2 Session Thermal Treatment', multiplier: 1.6 },
+        ],
+      },
+      {
+        label: 'Spider Service',
+        basePrice: 1800,
+        types: [{ label: 'Single Service', multiplier: 1 }],
+      },
+      {
+        label: 'Mosquito Service',
+        basePrice: 2200,
+        types: [
+          { label: 'Single Service', multiplier: 1 },
+          { label: 'AMC - Quarterly Fogging', multiplier: 2.1 },
+        ],
+      },
+      {
+        label: 'Rat Home Service',
+        basePrice: 2600,
+        types: [{ label: 'Single Service', multiplier: 1 }],
+      },
+      {
+        label: 'Ant Service',
+        basePrice: 1600,
+        types: [{ label: 'Single Service', multiplier: 1 }],
+      },
+      {
+        label: 'Virus Disinfection Service',
+        basePrice: 3200,
+        types: [{ label: 'Single Service', multiplier: 1 }],
+      },
+      {
+        label: 'Fly Service',
+        basePrice: 1800,
+        types: [{ label: 'Single Service', multiplier: 1 }],
+      },
+    ],
+  },
   serviceCategories: [
     {
       id: 'cockroach',
@@ -159,7 +253,9 @@ export const getSiteConfig = async (_req, res, next) => {
 // PUT Admin site settings update ("Site Changes")
 export const updateSiteConfig = async (req, res, next) => {
   try {
-    const { promoBanner, contactInfo, pricingRules, premisesAllotments, serviceCategories } = req.body;
+    const { promoBanner, contactInfo, pricingRules, premisesAllotments, serviceCategories, heroBanners, instantQuote } = req.body;
+
+    if (heroBanners) assertValidHeroBanners(heroBanners);
 
     let config = await SiteConfig.findOne({ key: 'default_config' });
     if (!config) {
@@ -171,6 +267,8 @@ export const updateSiteConfig = async (req, res, next) => {
     if (pricingRules) config.pricingRules = { ...config.pricingRules, ...pricingRules };
     if (premisesAllotments) config.premisesAllotments = premisesAllotments;
     if (serviceCategories) config.serviceCategories = serviceCategories;
+    if (heroBanners) config.heroBanners = heroBanners;
+    if (instantQuote) config.instantQuote = instantQuote;
 
     await config.save();
     res.json({ success: true, message: 'Storefront site changes updated successfully', data: config });

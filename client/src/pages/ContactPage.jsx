@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle2 } from 'lucide-react';
 import { http } from '../services/http';
+import { appAlert } from '../lib/dialog';
 
 export function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -33,7 +34,7 @@ export function ContactPage() {
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      alert('Failed to send message. Please call 1800-212-2125 directly.');
+      await appAlert('Failed to send message. Please call 1800-212-2125 directly.');
     } finally {
       setSubmitting(false);
     }

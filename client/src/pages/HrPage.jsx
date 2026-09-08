@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CalendarCheck, Eye, Plus, Printer, Users, Wallet } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
+import { appPrompt } from '../lib/dialog';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
@@ -49,7 +50,7 @@ export function HrPage() {
     await http.post('/hr/attendance/punch', { action, gps: await position() });
   }, attendance.reload);
   const reviewLeave = async (record, status) => {
-    const reviewNote = prompt('Review note (optional)') || '';
+    const reviewNote = (await appPrompt('Review note (optional)', { title: 'Review leave request', required: false })) || '';
     await http.patch('/hr/leaves/' + record._id + '/review', { status, reviewNote });
     await Promise.all([leaves.reload(), attendance.reload()]);
   };
@@ -59,7 +60,7 @@ export function HrPage() {
     setSelectedPayroll(null);
   };
   const markPaid = async (line) => {
-    const paymentReference = prompt('Enter bank/payment reference');
+    const paymentReference = await appPrompt('Enter bank/payment reference', { title: 'Mark payroll line as paid' });
     if (!paymentReference) return;
     const { data } = await http.patch('/hr/payroll/' + selectedPayroll._id + '/lines/' + line._id + '/pay', { paymentReference });
     setSelectedPayroll(data.payroll);
