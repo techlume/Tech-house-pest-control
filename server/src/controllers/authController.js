@@ -7,10 +7,14 @@ import {
 } from '../services/tokenService.js';
 import { env } from '../config/env.js';
 import { audit } from '../services/auditService.js';
+// Cross-site deployments (client and API on different domains) need SameSite=None,
+// which browsers only honour on a Secure (HTTPS) cookie. Same-site/local dev keeps
+// the stricter Lax setting so it still works over plain http://localhost.
+const crossSite = env.NODE_ENV === 'production';
 const cookie = {
   httpOnly: true,
-  secure: env.cookieSecure,
-  sameSite: 'strict',
+  secure: crossSite || env.cookieSecure,
+  sameSite: crossSite ? 'none' : 'lax',
   path: '/api/v1/auth',
   maxAge: 604800000,
 };
