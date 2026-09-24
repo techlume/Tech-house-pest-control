@@ -11,11 +11,12 @@ import { nextReference } from '../services/sequenceService.js';
 import { AppError } from '../utils/AppError.js';
 import { User } from '../models/User.js';
 const r = Router(),
-  admins = allowRoles(ROLES.OWNER, ROLES.ADMIN),
-  payrollRoles = allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.ACCOUNTANT);
+  admins = allowRoles(ROLES.ADMIN),
+  payrollRoles = allowRoles(ROLES.ADMIN);
 r.use(authenticate, allowRoles(...STAFF_ROLES));
 r.get(
   '/employees',
+  admins,
   asyncHandler(async (req, res) =>
     res.json({
       items: await Employee.find(branchScope(req, req.query.branchId)).sort({
@@ -35,7 +36,6 @@ r.post(
         _id: req.body.userId,
         companyId: req.auth.companyId,
         branchId,
-        role: { $ne: ROLES.CUSTOMER },
         active: true,
       });
       if (!linkedUser)
@@ -158,7 +158,7 @@ r.get(
 r.post(
   '/leaves',
   asyncHandler(async (req, res) => {
-    const isAdmin = [ROLES.OWNER, ROLES.ADMIN].includes(req.auth.role);
+    const isAdmin = req.auth.role === ROLES.ADMIN;
     const employee = await Employee.findOne(
       isAdmin
         ? { ...branchScope(req), _id: req.body.employeeId }

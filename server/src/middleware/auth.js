@@ -1,7 +1,7 @@
 import { User } from '../models/User.js';
 import { verifyAccessToken } from '../services/tokenService.js';
 import { AppError } from '../utils/AppError.js';
-import { GLOBAL_BRANCH_ROLES } from '../constants/roles.js';
+import { GLOBAL_BRANCH_ROLES, ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 export const authenticate = asyncHandler(async (req, _res, next) => {
   const header = req.get('authorization');
@@ -14,7 +14,7 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
     throw new AppError(401, 'Session expired', 'INVALID_TOKEN');
   }
   const user = await User.findById(payload.sub).select(
-    'companyId branchId customerId role active',
+    'companyId branchId role canEdit active',
   );
   if (!user?.active)
     throw new AppError(401, 'Account unavailable', 'ACCOUNT_INACTIVE');
@@ -22,8 +22,8 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
     userId: user.id,
     companyId: user.companyId,
     branchId: user.branchId,
-    customerId: user.customerId,
     role: user.role,
+    canEdit: Boolean(user.canEdit),
     allBranches: GLOBAL_BRANCH_ROLES.includes(user.role),
   };
   next();
@@ -31,7 +31,10 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
 export const allowRoles =
   (...roles) =>
   (req, _res, next) =>
-    roles.includes(req.auth.role)
+    (roles.includes(req.auth.role) ||
+    (req.auth.role === ROLES.SUB_ADMIN &&
+      req.auth.canEdit &&
+      roles.includes(ROLES.ADMIN)))
       ? next()
       : next(new AppError(403, 'You do not have permission', 'FORBIDDEN'));
 export const branchScope = (req, branchId) =>
@@ -40,5 +43,3 @@ export const branchScope = (req, branchId) =>
       ? { companyId: req.auth.companyId, branchId }
       : { companyId: req.auth.companyId }
     : { companyId: req.auth.companyId, branchId: req.auth.branchId };
-export const customerDataScope = (req) =>
-  req.auth.role === 'CUSTOMER' ? { customerId: req.auth.customerId } : {};

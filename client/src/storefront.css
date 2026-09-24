@@ -29,7 +29,6 @@ html {
 .sf-risk-card,
 .sf-calc-card,
 .sf-process-card,
-.sf-faq-item,
 .sf-section-title {
   opacity: 0;
   transform: translateY(35px) scale(0.98);
@@ -41,7 +40,6 @@ html {
 .sf-risk-card.visible,
 .sf-calc-card.visible,
 .sf-process-card.visible,
-.sf-faq-item.visible,
 .sf-section-title.visible {
   opacity: 1;
   transform: translateY(0) scale(1);
@@ -71,22 +69,18 @@ html {
   transform: translateX(0) scale(1);
 }
 
-/* Staggered Entrance Delays for Grid Cards & FAQs */
+/* Staggered Entrance Delays for Grid Cards */
 div > .sf-risk-card:nth-child(1),
-div > .sf-process-card:nth-child(1),
-.sf-faq-list > .sf-faq-item:nth-child(1) { transition-delay: 0.05s; }
+div > .sf-process-card:nth-child(1) { transition-delay: 0.05s; }
 
 div > .sf-risk-card:nth-child(2),
-div > .sf-process-card:nth-child(2),
-.sf-faq-list > .sf-faq-item:nth-child(2) { transition-delay: 0.15s; }
+div > .sf-process-card:nth-child(2) { transition-delay: 0.15s; }
 
 div > .sf-risk-card:nth-child(3),
-div > .sf-process-card:nth-child(3),
-.sf-faq-list > .sf-faq-item:nth-child(3) { transition-delay: 0.25s; }
+div > .sf-process-card:nth-child(3) { transition-delay: 0.25s; }
 
 div > .sf-risk-card:nth-child(4),
-div > .sf-process-card:nth-child(4),
-.sf-faq-list > .sf-faq-item:nth-child(4) { transition-delay: 0.35s; }
+div > .sf-process-card:nth-child(4) { transition-delay: 0.35s; }
 
 /* Interactive Hover, Active Click & Micro-Animations for Cards & Buttons */
 .sf-risk-card,

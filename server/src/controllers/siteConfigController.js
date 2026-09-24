@@ -253,7 +253,7 @@ export const getSiteConfig = async (_req, res, next) => {
 // PUT Admin site settings update ("Site Changes")
 export const updateSiteConfig = async (req, res, next) => {
   try {
-    const { promoBanner, contactInfo, pricingRules, premisesAllotments, serviceCategories, heroBanners, instantQuote } = req.body;
+    const { promoBanner, contactInfo, pricingRules, premisesAllotments, serviceCategories, heroBanners, instantQuote, legalContent } = req.body;
 
     if (heroBanners) assertValidHeroBanners(heroBanners);
 
@@ -269,6 +269,7 @@ export const updateSiteConfig = async (req, res, next) => {
     if (serviceCategories) config.serviceCategories = serviceCategories;
     if (heroBanners) config.heroBanners = heroBanners;
     if (instantQuote) config.instantQuote = instantQuote;
+    if (legalContent) config.legalContent = { ...config.legalContent, ...legalContent };
 
     await config.save();
     res.json({ success: true, message: 'Storefront site changes updated successfully', data: config });

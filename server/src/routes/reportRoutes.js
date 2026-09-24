@@ -9,7 +9,7 @@ import { Complaint } from '../models/Complaint.js';
 import { Product } from '../models/Product.js';
 import { JobCard } from '../models/JobCard.js';
 import { Company } from '../models/Company.js';
-import { authenticate, allowRoles, branchScope, customerDataScope } from '../middleware/auth.js';
+import { authenticate, allowRoles, branchScope } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
 import { sendDocumentEmail } from '../services/documentEmailService.js';
@@ -22,8 +22,6 @@ r.get(
   '/overview',
   asyncHandler(async (req, res) => {
     const scope = branchScope(req, req.query.branchId),
-      customerScope = customerDataScope(req),
-      isCustomer = req.auth.role === 'CUSTOMER',
       today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -39,27 +37,21 @@ r.get(
       complaints,
       products,
     ] = await Promise.all([
-      isCustomer ? Promise.resolve([]) : Lead.find(scope).lean(),
-      Customer.countDocuments({
-        ...scope,
-        ...(isCustomer ? { _id: req.auth.customerId } : {}),
-        active: true,
-      }),
-      Quotation.find({ ...scope, ...customerScope }).lean(),
-      Contract.countDocuments({ ...scope, ...customerScope, status: 'Active' }),
+      Lead.find(scope).lean(),
+      Customer.countDocuments({ ...scope, active: true }),
+      Quotation.find(scope).lean(),
+      Contract.countDocuments({ ...scope, status: 'Active' }),
       Visit.countDocuments({
         ...scope,
-        ...customerScope,
         scheduledAt: { $gte: today, $lt: tomorrow },
       }),
-      Visit.countDocuments({ ...scope, ...customerScope, status: 'Completed' }),
-      Invoice.find({ ...scope, ...customerScope }).lean(),
+      Visit.countDocuments({ ...scope, status: 'Completed' }),
+      Invoice.find(scope).lean(),
       Complaint.find({
         ...scope,
-        ...customerScope,
         status: { $nin: ['Closed', 'Cancelled'] },
       }).lean(),
-      isCustomer ? Promise.resolve([]) : Product.find({ ...scope, active: true }).lean(),
+      Product.find({ ...scope, active: true }).lean(),
     ]);
     const won = leads.filter((x) => x.status === 'Won').length,
       conversionRate = leads.length ? (won / leads.length) * 100 : 0,
@@ -100,8 +92,6 @@ r.get(
   '/reminders',
   asyncHandler(async (req, res) => {
     const scope = branchScope(req, req.query.branchId);
-    const customerScope = customerDataScope(req);
-    const isCustomer = req.auth.role === 'CUSTOMER';
     const now = new Date();
     const next7 = new Date(now);
     next7.setDate(next7.getDate() + 7);
@@ -109,20 +99,17 @@ r.get(
     next60.setDate(next60.getDate() + 60);
     const [followUps, contracts, visits, invoices, complaints, products] =
       await Promise.all([
-        isCustomer
-          ? []
-          : Lead.find({
-              ...scope,
-              status: { $nin: ['Won', 'Lost'] },
-              nextFollowUpAt: { $lte: next7 },
-            })
-              .select('leadNo name nextFollowUpAt priority')
-              .sort({ nextFollowUpAt: 1 })
-              .limit(20)
-              .lean(),
+        Lead.find({
+          ...scope,
+          status: { $nin: ['Won', 'Lost'] },
+          nextFollowUpAt: { $lte: next7 },
+        })
+          .select('leadNo name nextFollowUpAt priority')
+          .sort({ nextFollowUpAt: 1 })
+          .limit(20)
+          .lean(),
         Contract.find({
           ...scope,
-          ...customerScope,
           status: 'Active',
           endDate: { $lte: next60 },
         })
@@ -132,7 +119,6 @@ r.get(
           .lean(),
         Visit.find({
           ...scope,
-          ...customerScope,
           status: { $in: ['Scheduled', 'Assigned', 'En Route'] },
           scheduledAt: { $gte: now, $lte: next7 },
         })
@@ -142,7 +128,6 @@ r.get(
           .lean(),
         Invoice.find({
           ...scope,
-          ...customerScope,
           dueAmount: { $gt: 0 },
           dueDate: { $lte: next7 },
         })
@@ -152,7 +137,6 @@ r.get(
           .lean(),
         Complaint.find({
           ...scope,
-          ...customerScope,
           status: { $nin: ['Closed', 'Cancelled'] },
           slaDueAt: { $lte: next7 },
         })
@@ -160,7 +144,7 @@ r.get(
           .sort({ slaDueAt: 1 })
           .limit(20)
           .lean(),
-        isCustomer ? [] : Product.find({ ...scope, active: true }).lean(),
+        Product.find({ ...scope, active: true }).lean(),
       ]);
     const lowStock = products
       .map((product) => ({
@@ -177,7 +161,7 @@ r.get(
 
 r.post(
   '/reminders/invoices/:id/send',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.ACCOUNTANT),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const invoice = await Invoice.findOne({
       ...branchScope(req),
@@ -219,7 +203,6 @@ r.get(
   '/details',
   asyncHandler(async (req, res) => {
     const scope = branchScope(req, req.query.branchId);
-    const customerScope = customerDataScope(req);
     const to = req.query.to ? new Date(req.query.to) : new Date();
     const from = req.query.from
       ? new Date(req.query.from)
@@ -230,7 +213,6 @@ r.get(
     const [invoices, visits, jobs, leads] = await Promise.all([
       Invoice.find({
         ...scope,
-        ...customerScope,
         issueDate: { $gte: from, $lte: to },
       })
         .populate('customerId', 'name customerNo')
@@ -238,7 +220,6 @@ r.get(
         .lean(),
       Visit.find({
         ...scope,
-        ...customerScope,
         scheduledAt: { $gte: from, $lte: to },
       })
         .populate('customerId', 'name')
@@ -247,17 +228,14 @@ r.get(
         .lean(),
       JobCard.find({
         ...scope,
-        ...customerScope,
         completedAt: { $gte: from, $lte: to },
       })
         .populate('technicianId', 'name')
         .lean(),
-      req.auth.role === 'CUSTOMER'
-        ? []
-        : Lead.find({
-            ...scope,
-            createdAt: { $gte: from, $lte: to },
-          }).lean(),
+      Lead.find({
+        ...scope,
+        createdAt: { $gte: from, $lte: to },
+      }).lean(),
     ]);
     const technicianMap = new Map();
     for (const job of jobs) {

@@ -19,7 +19,7 @@ router.get(
 );
 router.post(
   '/',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) =>
     res.status(201).json({
       branch: await Branch.create({
@@ -31,7 +31,7 @@ router.post(
 );
 router.patch(
   '/:id',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const branch = await Branch.findOne({
       _id: req.params.id,

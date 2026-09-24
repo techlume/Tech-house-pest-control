@@ -12,7 +12,7 @@ import { sendEmail } from '../services/emailService.js';
 import { emailTemplates } from '../services/emailTemplates.js';
 
 const r = Router();
-r.use(authenticate, allowRoles(ROLES.OWNER, ROLES.ADMIN));
+r.use(authenticate, allowRoles(ROLES.ADMIN));
 
 r.get('/status', (_req, res) =>
   res.json({
@@ -34,7 +34,7 @@ r.get(
 
 r.post(
   '/test-email',
-  allowRoles(ROLES.OWNER),
+  allowRoles(ROLES.ADMIN),
   validate(
     z.object({
       body: z.object({ to: z.email().optional() }),

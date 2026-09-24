@@ -10,7 +10,6 @@ router.use(authenticate);
 router.get('/:id', asyncHandler(async (req, res) => {
   const scope = branchScope(req);
   const filter = { _id: req.params.id, ...scope };
-  if (req.auth.role === 'CUSTOMER') filter.customerId = req.auth.customerId;
   const file = await StoredFile.findOne(filter);
   if (!file) throw new AppError(404, 'File not found');
   res.type(file.originalType);

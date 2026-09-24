@@ -39,7 +39,9 @@ const DEFAULT_TERMS = [
 ];
 const blankLine = () => ({
   serviceName: '',
+  subheading: '',
   description: '',
+  imageUrl: '',
   visits: 1,
   quantity: 1,
   rate: '',
@@ -84,7 +86,8 @@ export function QuotationsPage() {
     customers = useApiList('/customers?limit=100'),
     branches = useApiList('/branches');
   const { user } = useAuth();
-  const canEdit = ['OWNER', 'ADMIN', 'SALESPERSON'].includes(user?.role);
+  const canEdit = user?.role === 'ADMIN' ||
+    (user?.role === 'SUB_ADMIN' && user?.canEdit);
   const [open, setOpen] = useState(false),
     [saving, setSaving] = useState(false),
     [error, setError] = useState(''),
@@ -96,15 +99,26 @@ export function QuotationsPage() {
   const handleCustomerCreated = async (created) => {
     await customers.reload();
     const property = created.properties?.[0];
-    setForm((current) => ({ ...current, customerId: created._id, propertyId: property?._id || '' }));
+    // The customer is permanently scoped to whichever branch it was created under —
+    // force the quotation form to match so the submit-time branch/customer lookup can't diverge.
+    setForm((current) => ({
+      ...current,
+      customerId: created._id,
+      propertyId: property?._id || '',
+      branchId: created.branchId || current.branchId,
+    }));
   };
   const customer = customers.data.find((x) => x._id === form.customerId),
-    set = (k, v) =>
-      setForm({
-        ...form,
-        [k]: v,
-        ...(k === 'customerId' ? { propertyId: '' } : {}),
-      });
+    set = (k, v) => {
+      // A customer only exists in one branch — always follow it, so the submit-time
+      // branch/customer lookup on the server can never diverge from what's picked here.
+      if (k === 'customerId') {
+        const picked = customers.data.find((x) => x._id === v);
+        setForm({ ...form, customerId: v, propertyId: '', branchId: picked?.branchId || form.branchId });
+        return;
+      }
+      setForm({ ...form, [k]: v });
+    };
   const updateLine = (idx, key, value) =>
     setForm({
       ...form,
@@ -130,7 +144,9 @@ export function QuotationsPage() {
         notes: form.notes,
         lines: form.lines.map((line) => ({
           serviceName: line.serviceName,
+          subheading: line.subheading || undefined,
           description: line.description,
+          imageUrl: line.imageUrl || undefined,
           visits: Number(line.visits || 1),
           quantity: Number(line.quantity),
           rate: Number(line.rate),
@@ -280,7 +296,7 @@ export function QuotationsPage() {
           </DialogHeader>
           <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={submit}>
             {error && <div className="form-error sm:col-span-2">{error}</div>}
-            {['OWNER', 'ADMIN'].includes(user?.role) && (
+            {user?.role === 'ADMIN' && (
               <div className="grid gap-1.5">
                 <Label>Branch</Label>
                 <Select required value={form.branchId} onValueChange={(v) => set('branchId', v)}>
@@ -430,23 +446,63 @@ export function QuotationsPage() {
   );
 }
 
+const MAX_ITEM_IMAGE_BYTES = 1_200_000;
+
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function QuoteLineRow({ line, gstTreatment, onChange, onRemove, canRemove }) {
   const base = Number(line.quantity || 0) * Number(line.rate || 0);
   const discount = Math.min(Number(line.discount || 0), base);
   const taxable = base - discount;
   const tax = gstTreatment === 'GST' ? (taxable * Number(line.taxRate || 0)) / 100 : 0;
   const total = taxable + tax;
+
+  const handleImage = async (file) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      await appAlert('Item images must be JPEG, PNG or WebP.');
+      return;
+    }
+    if (file.size > MAX_ITEM_IMAGE_BYTES) {
+      await appAlert('Item image is too large — please use an image under 1.2MB.');
+      return;
+    }
+    onChange('imageUrl', await readImageFile(file));
+  };
+
   return (
     <div className="rounded-xl border border-border p-4">
       <div className="flex items-start gap-2">
         <div className="grid flex-1 gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5 sm:col-span-2">
-            <Label>Service name</Label>
+            <Label>Heading (service name)</Label>
             <Input required placeholder="e.g. Termite Protection Barrier" value={line.serviceName} onChange={(e) => onChange('serviceName', e.target.value)} />
           </div>
           <div className="grid gap-1.5 sm:col-span-2">
-            <Label>Description (optional)</Label>
-            <Textarea rows="2" placeholder="Scope of work shown on the printed quotation" value={line.description} onChange={(e) => onChange('description', e.target.value)} />
+            <Label>Sub-heading (optional)</Label>
+            <Input placeholder="e.g. 5 Year Warranty Included" value={line.subheading || ''} onChange={(e) => onChange('subheading', e.target.value)} />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label>Paragraph (optional)</Label>
+            <Textarea rows="3" placeholder="Full scope of work shown on the printed quotation" value={line.description} onChange={(e) => onChange('description', e.target.value)} />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label>Item image (optional)</Label>
+            {line.imageUrl ? (
+              <div className="flex items-center gap-3">
+                <img src={line.imageUrl} alt="" className="h-16 w-16 rounded-lg border border-border object-cover" />
+                <Button type="button" variant="outline" size="sm" onClick={() => onChange('imageUrl', '')}>Remove image</Button>
+              </div>
+            ) : (
+              <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleImage(e.target.files?.[0])} />
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label>Visits</Label>
@@ -518,24 +574,42 @@ function QuotationDocument({ quotation }) {
         <span>ORIGINAL FOR RECIPIENT</span>
       </div>
 
-      <div className='quote-doc-header'>
-        <div className='quote-doc-brand'>
-          <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
-          <div>
-            <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
-            {isGst && <p>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</p>}
-            <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
-            <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
-            <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
-          </div>
-        </div>
-        <div className='quote-doc-meta'>
-          <div><span>Quotation #:</span><strong>{quotation.quotationNo}</strong></div>
-          <div><span>Quotation date:</span><strong>{new Date(quotation.issueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></div>
-          <div><span>Place of supply:</span><strong>{customer.billingAddress?.state || 'Tamil Nadu'}</strong></div>
-          <div><span>Validity:</span><strong>{new Date(quotation.validUntil).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></div>
-        </div>
-      </div>
+      <table className='quote-doc-headtable'>
+        <tbody>
+          <tr>
+            <td className='quote-doc-brand-cell' rowSpan={2}>
+              <div className='quote-doc-brand'>
+                <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
+                <div>
+                  <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
+                  {isGst && <p>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</p>}
+                  <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
+                  <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
+                  <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
+                </div>
+              </div>
+            </td>
+            <td className='quote-doc-meta-cell'>
+              <span>Quotation #:</span>
+              <strong>{quotation.quotationNo}</strong>
+            </td>
+            <td className='quote-doc-meta-cell'>
+              <span>Quotation Date:</span>
+              <strong>{new Date(quotation.issueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+            </td>
+          </tr>
+          <tr>
+            <td className='quote-doc-meta-cell'>
+              <span>Place of Supply:</span>
+              <strong>{customer.billingAddress?.state || 'Tamil Nadu'}</strong>
+            </td>
+            <td className='quote-doc-meta-cell'>
+              <span>Validity:</span>
+              <strong>{new Date(quotation.validUntil).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <section className='quote-doc-customer'>
         <span>Customer Details:</span>
@@ -561,8 +635,10 @@ function QuotationDocument({ quotation }) {
               <tr key={line._id || idx}>
                 <td>{idx + 1}</td>
                 <td>
-                  <strong>{line.serviceName}</strong>
-                  {line.description && <div className='quote-doc-item-desc'>{line.description}</div>}
+                  <strong className='quote-doc-item-heading'>{line.serviceName}</strong>
+                  {line.subheading && <div className='quote-doc-item-subheading'>{line.subheading}</div>}
+                  {line.description && <p className='quote-doc-item-desc'>{line.description}</p>}
+                  {line.imageUrl && <img src={line.imageUrl} alt='' className='quote-doc-item-image' />}
                 </td>
                 <td>998531</td>
                 <td>₹{Number(line.rate).toLocaleString('en-IN')}</td>
@@ -594,23 +670,29 @@ function QuotationDocument({ quotation }) {
 
       <div className='quote-doc-words'>Total amount (in words): {amountInWordsRupees(quotation.grandTotal)}</div>
 
-      <div className='quote-doc-signature'>
-        <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
-        <span>Authorized Signatory</span>
-      </div>
+      <table className='quote-doc-signrow'>
+        <tbody>
+          <tr>
+            <td>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</td>
+            <td className='align-right'>Authorized Signatory</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <section className='quote-doc-notes'>
-        <div>
-          <h4>Notes:</h4>
-          <p>{quotation.notes || '—'}</p>
-        </div>
-        <div>
-          <h4>Terms and Conditions:</h4>
-          <ul>
-            {termsList.map((t, i) => <li key={i}>{t}</li>)}
-          </ul>
-        </div>
-      </section>
+      <table className='quote-doc-notesrow'>
+        <tbody>
+          <tr>
+            <td>
+              <h4>Notes:</h4>
+              <p>{quotation.notes || '—'}</p>
+            </td>
+            <td>
+              <h4>Terms and Conditions:</h4>
+              {termsList.map((t, i) => <p key={i}>{t}</p>)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <footer className='quote-doc-footer'>
         <span>This is a computer generated document and requires no signature.</span>

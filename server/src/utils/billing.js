@@ -1,5 +1,22 @@
 import { AppError } from './AppError.js';
 
+const MAX_LINE_IMAGE_BYTES = 1_200_000; // ~1.2MB raw per line-item image
+const LINE_IMAGE_DATA_URI_PATTERN = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=\r\n]+)$/;
+
+/** Validates any per-line item images (Quotation/Invoice line.imageUrl) sent as base64 data URIs. */
+export function assertValidLineImages(lines) {
+  if (!Array.isArray(lines)) return;
+  for (const line of lines) {
+    if (!line?.imageUrl) continue;
+    const match = line.imageUrl.match(LINE_IMAGE_DATA_URI_PATTERN);
+    if (!match) continue; // already a hosted URL from a previous save — nothing to validate
+    const approxBytes = (match[2].length * 3) / 4;
+    if (approxBytes > MAX_LINE_IMAGE_BYTES) {
+      throw new AppError(422, 'Item images must be under 1.2MB each — please compress the image and try again', 'ITEM_IMAGE_TOO_LARGE');
+    }
+  }
+}
+
 export function calculateInvoice(lines, gstTreatment = 'NON_GST') {
   if (!Array.isArray(lines) || !lines.length)
     throw new AppError(422, 'At least one invoice line is required');

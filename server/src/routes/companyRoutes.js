@@ -11,7 +11,7 @@ const fields = [
   'name', 'legalName', 'gstin', 'pan', 'email', 'phone', 'address',
   'invoiceTerms', 'logoUrl', 'palette', 'timezone', 'currency',
 ];
-router.use(authenticate, allowRoles(ROLES.OWNER, ROLES.ADMIN));
+router.use(authenticate, allowRoles(ROLES.ADMIN));
 router.get('/', asyncHandler(async (req, res) => {
   const company = await Company.findById(req.auth.companyId);
   if (!company) throw new AppError(404, 'Company not found');

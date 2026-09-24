@@ -1,6 +1,15 @@
+import { useEffect, useState } from 'react';
 import { Phone, ShieldCheck } from 'lucide-react';
+import { http } from '../services/http';
 
 export function PrivacyPolicyPage() {
+  const [content, setContent] = useState('');
+  useEffect(() => {
+    http.get('/site-config').then((res) => {
+      const html = res.data?.data?.legalContent?.privacyPolicy;
+      if (html) setContent(html);
+    }).catch(() => {});
+  }, []);
   return (
     <div className="sf-wrapper">
       <header className="sf-navbar">
@@ -30,27 +39,31 @@ export function PrivacyPolicyPage() {
         <h1 style={{ fontSize: '28px', color: '#063d59', marginBottom: '8px' }}>Privacy Policy</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>Last Updated: January 2026</p>
 
-        <section style={{ display: 'grid', gap: '20px', color: '#334155', lineHeight: '1.7' }}>
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>1. Collection of Customer Information</h3>
-            <p>Tech House Pest Control collects customer contact information (Name, Phone Number, Email Address, and Property Address) solely to process pest control bookings, conduct site inspections, and deliver service notifications.</p>
-          </div>
+        {content ? (
+          <section style={{ color: '#334155', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: content }} />
+        ) : (
+          <section style={{ display: 'grid', gap: '20px', color: '#334155', lineHeight: '1.7' }}>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>1. Collection of Customer Information</h3>
+              <p>Tech House Pest Control collects customer contact information (Name, Phone Number, Email Address, and Property Address) solely to process pest control bookings, conduct site inspections, and deliver service notifications.</p>
+            </div>
 
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>2. Use of Data & Service Communications</h3>
-            <p>Your data is strictly utilized for operational service dispatch, technician scheduling, invoice generation, and customer support. We do not sell or rent customer data to third-party advertising brokers.</p>
-          </div>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>2. Use of Data & Service Communications</h3>
+              <p>Your data is strictly utilized for operational service dispatch, technician scheduling, invoice generation, and customer support. We do not sell or rent customer data to third-party advertising brokers.</p>
+            </div>
 
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>3. Data Security & Storage</h3>
-            <p>All online transaction information and customer lead data are encrypted using 256-bit SSL encryption and stored securely within MongoDB database clusters complying with ISO 27001 data security standards.</p>
-          </div>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>3. Data Security & Storage</h3>
+              <p>All online transaction information and customer lead data are encrypted using 256-bit SSL encryption and stored securely within MongoDB database clusters complying with ISO 27001 data security standards.</p>
+            </div>
 
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>4. Customer Rights & Inquiries</h3>
-            <p>Customers may request to inspect, update, or delete their profile information from our database at any time by contacting our Privacy Desk at <a href="mailto:privacy@techhousepest.com" style={{ color: '#159bd3' }}>privacy@techhousepest.com</a>.</p>
-          </div>
-        </section>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>4. Customer Rights & Inquiries</h3>
+              <p>Customers may request to inspect, update, or delete their profile information from our database at any time by contacting our Privacy Desk at <a href="mailto:privacy@techhousepest.com" style={{ color: '#159bd3' }}>privacy@techhousepest.com</a>.</p>
+            </div>
+          </section>
+        )}
       </div>
 
       <footer>

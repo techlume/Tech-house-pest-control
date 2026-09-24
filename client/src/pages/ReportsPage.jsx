@@ -2,15 +2,21 @@ import { useEffect, useState } from 'react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Label } from '../components/ui/label';
+import { Input } from '../components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+
 const reportNow = new Date();
 const initialFilters = {
   branchId: '',
-  from: new Date(reportNow.getFullYear(), reportNow.getMonth(), 1)
-    .toISOString()
-    .slice(0, 10),
+  from: new Date(reportNow.getFullYear(), reportNow.getMonth(), 1).toISOString().slice(0, 10),
   to: reportNow.toISOString().slice(0, 10),
 };
 const money = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+const ALL_BRANCHES = 'all';
+
 export function ReportsPage() {
   const branches = useApiList('/branches');
   const { user } = useAuth();
@@ -18,12 +24,11 @@ export function ReportsPage() {
     [error, setError] = useState(''),
     [filters, setFilters] = useState(initialFilters),
     [loading, setLoading] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
-      const query = new URLSearchParams(
-        Object.entries(filters).filter(([, value]) => value),
-      );
+      const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value));
       setData((await http.get('/reports/details?' + query)).data);
       setError('');
     } catch (e) {
@@ -32,17 +37,22 @@ export function ReportsPage() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     load();
   }, []);
+
   if (!data)
-    return <div className='empty-table'>{error || 'Loading reports…'}</div>;
+    return (
+      <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+        {error || 'Loading reports…'}
+      </div>
+    );
+
   const exportRows = (name, rows) => {
     if (!rows.length) return;
     const keys = Object.keys(rows[0]),
-      text = [keys, ...rows.map((r) => keys.map((k) => r[k]))]
-        .map((row) => row.join(','))
-        .join('\n'),
+      text = [keys, ...rows.map((r) => keys.map((k) => r[k]))].map((row) => row.join(',')).join('\n'),
       url = URL.createObjectURL(new Blob([text], { type: 'text/csv' })),
       a = document.createElement('a');
     a.href = url;
@@ -50,34 +60,79 @@ export function ReportsPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
   return (
     <>
-      <div className='page-heading actions'>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className='eyebrow'>Business intelligence</span>
-          <h2>Reports & Analytics</h2>
-          <p>Current-month finance, GST, sales and operations.</p>
+          <span className="eyebrow">Business intelligence</span>
+          <h2 className="text-2xl font-extrabold tracking-tight">Reports & Analytics</h2>
+          <p className="text-sm text-muted-foreground">Current-month finance, GST, sales and operations.</p>
         </div>
-        <div className='action-group'>
-          <button onClick={() => window.print()}>PDF / Print</button>
-          <button onClick={() => exportRows('invoices.csv', data.invoices)}>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => window.print()}>
+            PDF / Print
+          </Button>
+          <Button variant="outline" onClick={() => exportRows('invoices.csv', data.invoices)}>
             Invoice CSV
-          </button>
-          <button onClick={() => exportRows('visits.csv', data.visits)}>
+          </Button>
+          <Button variant="outline" onClick={() => exportRows('visits.csv', data.visits)}>
             Visit CSV
-          </button>
+          </Button>
         </div>
       </div>
-      <section className='panel'>
-        <form className='form-grid' onSubmit={(event) => { event.preventDefault(); load(); }}>
-          {['OWNER', 'ADMIN'].includes(user?.role) && <label><span>Branch</span><select value={filters.branchId} onChange={(event) => setFilters({ ...filters, branchId: event.target.value })}><option value=''>All branches</option>{branches.data.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}</option>)}</select></label>}
-          <label><span>From</span><input required type='date' value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} /></label>
-          <label><span>To</span><input required type='date' min={filters.from} value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} /></label>
-          <div className='form-actions'><button className='primary-button' disabled={loading}>{loading ? 'Loading…' : 'Apply filters'}</button></div>
-        </form>
-        {error && <div className='form-error'>{error}</div>}
-      </section>
-      <div className='report-metrics'>
+
+      <Card className="mt-5">
+        <CardContent className="p-5">
+          <form
+            className="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:items-end"
+            onSubmit={(event) => {
+              event.preventDefault();
+              load();
+            }}
+          >
+            {user?.role === 'ADMIN' && (
+              <div className="grid gap-1.5">
+                <Label>Branch</Label>
+                <Select
+                  value={filters.branchId || ALL_BRANCHES}
+                  onValueChange={(value) => setFilters({ ...filters, branchId: value === ALL_BRANCHES ? '' : value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_BRANCHES}>All branches</SelectItem>
+                    {branches.data.map((branch) => (
+                      <SelectItem key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="grid gap-1.5">
+              <Label>From</Label>
+              <Input required type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>To</Label>
+              <Input
+                required
+                type="date"
+                min={filters.from}
+                value={filters.to}
+                onChange={(event) => setFilters({ ...filters, to: event.target.value })}
+              />
+            </div>
+            <Button disabled={loading}>{loading ? 'Loading…' : 'Apply filters'}</Button>
+          </form>
+          {error && <div className="form-error">{error}</div>}
+        </CardContent>
+      </Card>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {[
           ['Billed', money(data.summary.billed)],
           ['Collected', money(data.summary.collected)],
@@ -86,21 +141,28 @@ export function ReportsPage() {
           ['Visits', data.summary.visits],
           ['Completed jobs', data.summary.completedJobs],
         ].map(([label, value]) => (
-          <article key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-          </article>
+          <Card key={label}>
+            <CardContent className="p-4">
+              <span className="block text-xs text-muted-foreground">{label}</span>
+              <strong className="block text-lg font-extrabold">{value}</strong>
+            </CardContent>
+          </Card>
         ))}
       </div>
-      <section className='panel'>
-        <h3>Technician productivity</h3>
-        {data.technicians.map((row) => (
-          <div className='analytics-row' key={row.technician}>
-            <span>{row.technician}</span>
-            <strong>{row.completedJobs} jobs</strong>
+
+      <Card className="mt-5">
+        <CardContent className="p-5">
+          <h3 className="text-base font-bold">Technician productivity</h3>
+          <div className="mt-3 grid gap-2">
+            {data.technicians.map((row) => (
+              <div key={row.technician} className="flex items-center justify-between rounded-xl border border-border p-3">
+                <span>{row.technician}</span>
+                <strong className="font-semibold">{row.completedJobs} jobs</strong>
+              </div>
+            ))}
           </div>
-        ))}
-      </section>
+        </CardContent>
+      </Card>
     </>
   );
 }

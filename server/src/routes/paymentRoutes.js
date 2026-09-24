@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Invoice } from '../models/Invoice.js';
 import { Receipt } from '../models/Receipt.js';
 import { PaymentTransaction } from '../models/PaymentTransaction.js';
+import { User } from '../models/User.js';
 import { authenticate, branchScope } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -106,14 +107,101 @@ router.post(
   }),
 );
 
+// Public payment-link routes (no auth) — the admin shares this URL with the customer directly.
+async function resolveSystemUser(invoice) {
+  if (invoice.createdBy) return invoice.createdBy;
+  const admin = await User.findOne({ companyId: invoice.companyId, role: 'ADMIN' }).select('_id');
+  if (admin) return admin._id;
+  const anyStaff = await User.findOne({ companyId: invoice.companyId }).select('_id');
+  return anyStaff?._id;
+}
+
+router.get(
+  '/link/:token',
+  asyncHandler(async (req, res) => {
+    const invoice = await Invoice.findOne({ paymentLinkToken: req.params.token })
+      .populate('customerId', 'name')
+      .populate('companyId', 'name legalName');
+    if (!invoice) throw new AppError(404, 'Payment link not found or has expired');
+    res.json({
+      invoiceNo: invoice.invoiceNo,
+      companyName: invoice.companyId?.legalName || invoice.companyId?.name || 'Tech House Pest Control',
+      customerName: invoice.customerId?.name || 'Customer',
+      grandTotal: invoice.grandTotal,
+      dueAmount: invoice.dueAmount,
+      status: invoice.status,
+      dueDate: invoice.dueDate,
+      issueDate: invoice.issueDate,
+    });
+  }),
+);
+
+router.post(
+  '/link/:token/order',
+  asyncHandler(async (req, res) => {
+    const invoice = await Invoice.findOne({ paymentLinkToken: req.params.token });
+    if (!invoice) throw new AppError(404, 'Payment link not found or has expired');
+    if (!(invoice.dueAmount > 0)) throw new AppError(409, 'This invoice is already paid');
+
+    const gatewayOrder = await createRazorpayOrder({
+      amount: invoice.dueAmount,
+      receipt: invoice.invoiceNo + '-' + Date.now(),
+      notes: { invoiceNo: invoice.invoiceNo, invoiceId: String(invoice._id) },
+    });
+
+    const payment = await PaymentTransaction.create({
+      companyId: invoice.companyId,
+      branchId: invoice.branchId,
+      invoiceId: invoice._id,
+      customerId: invoice.customerId,
+      razorpayOrderId: gatewayOrder.id,
+      amount: invoice.dueAmount,
+      createdBy: await resolveSystemUser(invoice),
+    });
+
+    res.status(201).json({
+      orderId: payment.razorpayOrderId,
+      amount: Math.round(payment.amount * 100),
+      currency: 'INR',
+      keyId: razorpayKeyId(),
+      invoiceNo: invoice.invoiceNo,
+    });
+  }),
+);
+
+router.post(
+  '/link/:token/verify',
+  asyncHandler(async (req, res) => {
+    const invoice = await Invoice.findOne({ paymentLinkToken: req.params.token });
+    if (!invoice) throw new AppError(404, 'Payment link not found or has expired');
+    const payment = await PaymentTransaction.findOne({
+      razorpayOrderId: req.body.razorpay_order_id,
+      invoiceId: invoice._id,
+    });
+    if (!payment) throw new AppError(404, 'Payment order not found');
+    if (
+      !verifyRazorpayPayment({
+        orderId: payment.razorpayOrderId,
+        paymentId: req.body.razorpay_payment_id,
+        signature: req.body.razorpay_signature,
+      })
+    ) {
+      throw new AppError(400, 'Payment signature could not be verified', 'INVALID_PAYMENT_SIGNATURE');
+    }
+    const result = await finalizePayment({
+      payment,
+      paymentId: req.body.razorpay_payment_id,
+      verifiedBy: payment.createdBy,
+    });
+    res.json({ success: true, alreadyVerified: result.alreadyVerified });
+  }),
+);
+
 router.use(authenticate);
 
 const findInvoice = async (req, invoiceId) => {
   const invoice = await Invoice.findOne({ ...branchScope(req), _id: invoiceId });
   if (!invoice) throw new AppError(404, 'Invoice not found');
-  if (req.auth.role === ROLES.CUSTOMER && String(invoice.customerId) !== String(req.auth.customerId)) {
-    throw new AppError(403, 'You can only pay your own invoices');
-  }
   return invoice;
 };
 
@@ -157,9 +245,6 @@ router.post(
       companyId: req.auth.companyId,
     });
     if (!payment) throw new AppError(404, 'Payment order not found');
-    if (req.auth.role === ROLES.CUSTOMER && String(payment.customerId) !== String(req.auth.customerId)) {
-      throw new AppError(403, 'You can only verify your own payment');
-    }
     if (!verifyRazorpayPayment({ orderId: payment.razorpayOrderId, paymentId: req.body.razorpay_payment_id, signature: req.body.razorpay_signature })) {
       throw new AppError(400, 'Payment signature could not be verified', 'INVALID_PAYMENT_SIGNATURE');
     }

@@ -24,7 +24,7 @@ r.get(
 );
 r.post(
   '/products',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.STOREKEEPER),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const branchId = writeBranch(req, req.body.branchId),
       product = await Product.create({
@@ -39,7 +39,7 @@ r.post(
 );
 r.post(
   '/movements',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.STOREKEEPER),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     if (['ADJUSTMENT_IN', 'ADJUSTMENT_OUT'].includes(req.body.type))
       throw new AppError(
@@ -103,7 +103,7 @@ r.get(
 );
 r.post(
   '/transfers',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.STOREKEEPER),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const source = await Product.findOne({ ...branchScope(req), _id: req.body.productId });
     if (!source) throw new AppError(404, 'Source product not found');
@@ -197,7 +197,7 @@ r.get(
 );
 r.post(
   '/adjustments',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.STOREKEEPER),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const product = await Product.findOne({ ...branchScope(req), _id: req.body.productId });
     const batch = product?.batches.id(req.body.batchId);
@@ -224,7 +224,7 @@ r.post(
 );
 r.patch(
   '/adjustments/:id/review',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const adjustment = await StockAdjustment.findOne({
       ...branchScope(req),

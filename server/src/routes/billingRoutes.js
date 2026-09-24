@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import { Invoice } from '../models/Invoice.js';
 import { Receipt } from '../models/Receipt.js';
 import { Customer } from '../models/Customer.js';
@@ -9,15 +10,13 @@ import {
   authenticate,
   allowRoles,
   branchScope,
-  customerDataScope,
 } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { writeBranch } from '../utils/scope.js';
 import { nextReference } from '../services/sequenceService.js';
 import { AppError } from '../utils/AppError.js';
-import { allocateReceipt, calculateInvoice } from '../utils/billing.js';
-import { notifyCustomer } from '../services/notificationService.js';
+import { allocateReceipt, assertValidLineImages, calculateInvoice } from '../utils/billing.js';
 import { sendDocumentEmail } from '../services/documentEmailService.js';
 
 const r = Router();
@@ -26,10 +25,7 @@ r.get(
   '/invoices',
   asyncHandler(async (req, res) =>
     res.json({
-      items: await Invoice.find({
-        ...branchScope(req, req.query.branchId),
-        ...customerDataScope(req),
-      })
+      items: await Invoice.find(branchScope(req, req.query.branchId))
         .populate('customerId', 'name customerNo gstin billingAddress phone email')
         .populate('branchId', 'name code gstin address phone email')
         .populate('companyId', 'name legalName gstin email phone')
@@ -39,7 +35,7 @@ r.get(
 );
 r.post(
   '/invoices',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.ACCOUNTANT),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const branchId = writeBranch(req, req.body.branchId),
       scope = { companyId: req.auth.companyId, branchId };
@@ -53,6 +49,7 @@ r.post(
     const dueDate = new Date(req.body.dueDate);
     if (Number.isNaN(dueDate.getTime()))
       throw new AppError(422, 'A valid due date is required');
+    assertValidLineImages(req.body.lines);
     const { lines, subtotal, taxTotal, grandTotal } = calculateInvoice(
       req.body.lines,
       req.body.gstTreatment,
@@ -89,12 +86,6 @@ r.post(
     });
     const company = await Company.findById(req.auth.companyId).select('name legalName').lean();
     const companyName = company?.legalName || company?.name || 'Tech House Pest Control';
-    await notifyCustomer(invoice.customerId, {
-      type: 'INVOICE_ISSUED',
-      title: 'New invoice issued',
-      message: invoice.invoiceNo + ' - Rs. ' + invoice.grandTotal.toLocaleString('en-IN'),
-      link: '/billing',
-    });
     await sendDocumentEmail({
       companyId: invoice.companyId,
       branchId: invoice.branchId,
@@ -115,8 +106,24 @@ r.post(
   }),
 );
 r.post(
+  '/invoices/:id/payment-link',
+  allowRoles(ROLES.ADMIN),
+  asyncHandler(async (req, res) => {
+    const invoice = await Invoice.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!invoice) throw new AppError(404, 'Invoice not found');
+    if (!invoice.paymentLinkToken) {
+      invoice.paymentLinkToken = crypto.randomBytes(16).toString('hex');
+      await invoice.save();
+    }
+    res.json({ token: invoice.paymentLinkToken });
+  }),
+);
+r.post(
   '/invoices/:id/convert-to-quotation',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.SALESPERSON),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const invoice = await Invoice.findOne({
       ...branchScope(req),
@@ -134,7 +141,9 @@ r.post(
 
     const lines = invoice.lines.map((line) => ({
       serviceName: line.description,
-      description: 'Re-quoted from invoice ' + invoice.invoiceNo,
+      subheading: line.subheading,
+      description: line.paragraph || 'Re-quoted from invoice ' + invoice.invoiceNo,
+      imageUrl: line.imageUrl,
       visits: 1,
       quantity: line.quantity,
       rate: line.rate,
@@ -169,7 +178,7 @@ r.post(
 );
 r.post(
   '/receipts',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.ACCOUNTANT),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const branchId = writeBranch(req, req.body.branchId),
       scope = { companyId: req.auth.companyId, branchId };
@@ -216,10 +225,7 @@ r.get(
   '/receipts',
   asyncHandler(async (req, res) =>
     res.json({
-      items: await Receipt.find({
-        ...branchScope(req, req.query.branchId),
-        ...customerDataScope(req),
-      })
+      items: await Receipt.find(branchScope(req, req.query.branchId))
         .populate('customerId', 'name')
         .populate('allocations.invoiceId', 'invoiceNo issueDate grandTotal')
         .sort({ receivedAt: -1 }),

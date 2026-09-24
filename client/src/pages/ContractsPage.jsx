@@ -22,7 +22,7 @@ export function ContractsPage() {
     contractValue: '',
   });
   const { user } = useAuth();
-  const canConvert = ['OWNER', 'ADMIN', 'SALESPERSON'].includes(user?.role);
+  const canConvert = user?.role === 'ADMIN';
   const canManage = canConvert;
   const eligible = quotes.data.filter(
     (q) => canConvert && q.status === 'Accepted',

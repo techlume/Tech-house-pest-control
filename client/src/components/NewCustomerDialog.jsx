@@ -26,10 +26,12 @@ const emptyForm = {
 export function NewCustomerDialog({ open, onOpenChange, branchId, onCreated }) {
   const { user } = useAuth();
   const branches = useApiList('/branches');
-  const showBranch = ['OWNER', 'ADMIN'].includes(user?.role);
+  const showBranch = user?.role === 'ADMIN';
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [duplicate, setDuplicate] = useState(null);
+  const [dismissedDuplicate, setDismissedDuplicate] = useState(false);
   const set = (k, v) => setForm({ ...form, [k]: v });
 
   useEffect(() => {
@@ -37,6 +39,31 @@ export function NewCustomerDialog({ open, onOpenChange, branchId, onCreated }) {
     const fallback = branchId || (branches.data.length === 1 ? branches.data[0]._id : '');
     setForm((current) => ({ ...current, branchId: current.branchId || fallback }));
   }, [open, branchId, branches.data]);
+
+  useEffect(() => {
+    const phone = form.phone.trim();
+    if (!open || phone.length < 6) {
+      setDuplicate(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      http.get('/customers?search=' + encodeURIComponent(phone)).then(({ data }) => {
+        if (cancelled) return;
+        const match = data.items.find((c) => c.phone === phone);
+        setDuplicate(match || null);
+        if (match) setDismissedDuplicate(false);
+      }).catch(() => {});
+    }, 400);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [form.phone, open]);
+
+  const keepExisting = () => {
+    onCreated?.(duplicate);
+    setForm(emptyForm);
+    setDuplicate(null);
+    onOpenChange(false);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -100,6 +127,15 @@ export function NewCustomerDialog({ open, onOpenChange, branchId, onCreated }) {
             <Label>Phone</Label>
             <Input required value={form.phone} onChange={(e) => set('phone', e.target.value)} />
           </div>
+          {duplicate && !dismissedDuplicate && (
+            <div className="sm:col-span-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              A customer with this number already exists — <strong>{duplicate.name}</strong> ({duplicate.customerNo}).
+              <div className="mt-2 flex gap-2">
+                <Button type="button" size="sm" onClick={keepExisting}>Keep this customer</Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => setDismissedDuplicate(true)}>Skip, create new</Button>
+              </div>
+            </div>
+          )}
           <div className="grid gap-1.5">
             <Label>Email</Label>
             <Input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />

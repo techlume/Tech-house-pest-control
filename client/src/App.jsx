@@ -23,6 +23,7 @@ import { ManagementPage } from './pages/ManagementPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { ProcurementPage } from './pages/ProcurementPage';
 import { BulkDataPage } from './pages/BulkDataPage';
+import { PayInvoicePage } from './pages/PayInvoicePage';
 
 // Public Service & Corporate Pages
 import { CockroachServicePage } from './pages/services/CockroachServicePage';
@@ -33,7 +34,6 @@ import { BedBugServicePage } from './pages/services/BedBugServicePage';
 import { BirdControlServicePage } from './pages/services/BirdControlServicePage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
-import { BlogPage } from './pages/BlogPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { LegalStatementPage } from './pages/LegalStatementPage';
 import { CookiePolicyPage } from './pages/CookiePolicyPage';
@@ -47,6 +47,7 @@ export default function App() {
           {/* Main D2C Customer Storefront Routes */}
           <Route path="/" element={<StorefrontPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/pay/:token" element={<PayInvoicePage />} />
 
           {/* Treatment & Service Pages */}
           <Route path="/services/cockroach" element={<CockroachServicePage />} />
@@ -59,7 +60,6 @@ export default function App() {
           {/* Corporate, Content & Policy Pages */}
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/blog" element={<BlogPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/legal-statement" element={<LegalStatementPage />} />
           <Route path="/cookie-policy" element={<CookiePolicyPage />} />

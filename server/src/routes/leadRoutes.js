@@ -10,10 +10,8 @@ import { AppError } from '../utils/AppError.js';
 import { audit } from '../services/auditService.js';
 import { assertTransition } from '../utils/workflow.js';
 import { pick } from '../utils/pick.js';
-import { User } from '../models/User.js';
-import { notifyUser } from '../services/notificationService.js';
 const router = Router();
-const sales = [ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON];
+const sales = [ROLES.ADMIN];
 const transitions = {
   New: ['Contacted', 'Lost'],
   Contacted: ['Inspection Required', 'Quotation Sent', 'Lost'],
@@ -34,7 +32,6 @@ const editableFields = [
   'city',
   'priority',
   'status',
-  'assignedTo',
   'nextFollowUpAt',
   'lostReason',
   'notes',
@@ -55,6 +52,7 @@ router.get(
     const [items, total] = await Promise.all([
       Lead.find(filter)
         .populate('assignedTo', 'name')
+        .populate('createdBy', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -73,7 +71,6 @@ router.post(
       ...req.body,
       ...scope,
       status: 'New',
-      assignedTo: null,
       leadNo: await nextReference(Lead, scope, 'leadNo', 'LEAD'),
       createdBy: req.auth.userId,
       updatedBy: req.auth.userId,
@@ -95,8 +92,8 @@ router.patch(
     });
     if (!lead) throw new AppError(404, 'Lead not found');
     const previous = lead.status;
-    const previousAssignee = String(lead.assignedTo || '');
     const previousFollowUp = lead.nextFollowUpAt?.toISOString();
+    const previousNotes = lead.notes || '';
     assertTransition(previous, req.body.status, transitions, 'Lead');
     if (req.body.status === 'Lost' && !req.body.lostReason)
       throw new AppError(422, 'A lost reason is required');
@@ -105,28 +102,19 @@ router.patch(
       Number.isNaN(new Date(req.body.nextFollowUpAt).getTime())
     )
       throw new AppError(422, 'A valid follow-up date and time is required');
-    if (req.body.assignedTo) {
-      const assignee = await User.findOne({
-        _id: req.body.assignedTo,
-        companyId: lead.companyId,
-        branchId: lead.branchId,
-        role: ROLES.SALESPERSON,
-        active: true,
+    if (
+      typeof req.body.notes === 'string' &&
+      req.body.notes.trim() &&
+      req.body.notes.trim() !== previousNotes.trim()
+    )
+      lead.activities.push({
+        type: 'NOTE_ADDED',
+        note: req.body.notes.trim(),
+        createdBy: req.auth.userId,
       });
-      if (!assignee) throw new AppError(422, 'Select a salesperson from this branch');
-    }
     Object.assign(lead, pick(req.body, editableFields), {
       updatedBy: req.auth.userId,
     });
-    if (
-      Object.prototype.hasOwnProperty.call(req.body, 'assignedTo') &&
-      String(req.body.assignedTo || '') !== previousAssignee
-    )
-      lead.activities.push({
-        type: 'ASSIGNED',
-        note: req.body.assignedTo ? 'Lead ownership updated' : 'Lead unassigned',
-        createdBy: req.auth.userId,
-      });
     if (
       req.body.nextFollowUpAt &&
       new Date(req.body.nextFollowUpAt).toISOString() !== previousFollowUp
@@ -143,17 +131,20 @@ router.patch(
         createdBy: req.auth.userId,
       });
     await lead.save();
-    if (
-      req.body.assignedTo &&
-      String(req.body.assignedTo) !== previousAssignee
-    )
-      await notifyUser(req.body.assignedTo, {
-        type: 'LEAD_ASSIGNED',
-        title: 'Lead assigned to you',
-        message: lead.leadNo + ' · ' + lead.name,
-        link: '/crm',
-      });
     res.json({ lead });
+  }),
+);
+router.delete(
+  '/:id',
+  allowRoles(...sales),
+  asyncHandler(async (req, res) => {
+    const lead = await Lead.findOne({ ...branchScope(req), _id: req.params.id });
+    if (!lead) throw new AppError(404, 'Lead not found');
+    if (lead.convertedCustomerId)
+      throw new AppError(409, 'A converted lead cannot be deleted');
+    await lead.deleteOne();
+    await audit(req, 'LEAD_DELETED', 'Lead', lead._id);
+    res.status(204).end();
   }),
 );
 router.post(

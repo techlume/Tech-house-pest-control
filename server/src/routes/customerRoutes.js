@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { Customer } from '../models/Customer.js';
+import { Invoice } from '../models/Invoice.js';
 import { authenticate, allowRoles, branchScope } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -8,22 +9,29 @@ import { pagination, writeBranch } from '../utils/scope.js';
 import { AppError } from '../utils/AppError.js';
 import { pick } from '../utils/pick.js';
 const router = Router();
-const editors = [ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON];
+const editors = [ROLES.ADMIN];
 router.use(authenticate);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = pagination(req.query);
     const filter = { ...branchScope(req, req.query.branchId) };
-    if (req.auth.role === ROLES.CUSTOMER) filter._id = req.auth.customerId;
-    if (req.query.search)
+    if (req.query.search) {
+      const matchingInvoiceCustomerIds = await Invoice.find({
+        ...branchScope(req, req.query.branchId),
+        invoiceNo: { $regex: req.query.search, $options: 'i' },
+      }).distinct('customerId');
       filter.$or = [
         { name: { $regex: req.query.search, $options: 'i' } },
         { phone: { $regex: req.query.search, $options: 'i' } },
         { customerNo: { $regex: req.query.search, $options: 'i' } },
+        { _id: { $in: matchingInvoiceCustomerIds } },
       ];
+    }
     const [items, total] = await Promise.all([
-      Customer.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Customer.find(filter)
+        .populate({ path: 'sourceLeadId', populate: { path: 'createdBy', select: 'name' } })
+        .sort({ createdAt: -1 }).skip(skip).limit(limit),
       Customer.countDocuments(filter),
     ]);
     res.json({ items, page, limit, total });
@@ -48,11 +56,6 @@ router.post(
 router.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    if (
-      req.auth.role === ROLES.CUSTOMER &&
-      String(req.params.id) !== String(req.auth.customerId)
-    )
-      throw new AppError(403, 'You can only view your own customer profile');
     const customer = await Customer.findOne({
       ...branchScope(req),
       _id: req.params.id,

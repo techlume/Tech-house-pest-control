@@ -49,6 +49,10 @@ export function StorefrontPage() {
   const [loading, setLoading] = useState(true);
   const [promoBarVisible, setPromoBarVisible] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [manualCoupon, setManualCoupon] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponMessage, setCouponMessage] = useState('');
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   // Calculator State
@@ -173,7 +177,9 @@ export function StorefrontPage() {
     packageSubtotal = packageSubtotal * (currentAllotment.amcPriceMultiplier || 2.2);
   }
 
-  const discountAmount = promo.enabled ? packageSubtotal * (promo.discountPercent / 100) : 0;
+  const activeDiscountPercent = appliedCoupon ? appliedCoupon.discountPercent : (promo.enabled ? promo.discountPercent : 0);
+  const activeDiscountCode = appliedCoupon ? appliedCoupon.code : promo.code;
+  const discountAmount = packageSubtotal * (activeDiscountPercent / 100);
   const netBeforeGst = packageSubtotal - discountAmount;
   const gstAmount = netBeforeGst * (rules.gstPercent / 100);
   const grandTotal = Math.round(netBeforeGst + gstAmount);
@@ -183,6 +189,28 @@ export function StorefrontPage() {
     navigator.clipboard.writeText(promo.code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2500);
+  };
+
+  const applyManualCoupon = async () => {
+    const code = manualCoupon.trim();
+    if (!code) return;
+    setCheckingCoupon(true);
+    setCouponMessage('');
+    try {
+      const { data } = await http.get('/coupons/validate', { params: { code } });
+      if (data.valid) {
+        setAppliedCoupon({ code: data.code, discountPercent: data.discountPercent });
+        setCouponMessage('Coupon applied: ' + data.discountPercent + '% off');
+      } else {
+        setAppliedCoupon(null);
+        setCouponMessage(data.message || 'Invalid coupon code');
+      }
+    } catch {
+      setAppliedCoupon(null);
+      setCouponMessage('Could not validate coupon right now');
+    } finally {
+      setCheckingCoupon(false);
+    }
   };
 
   const handleStaffLoginClick = () => {
@@ -457,7 +485,6 @@ export function StorefrontPage() {
           <li><a href="#services" className="sf-nav-link">Services</a></li>
           <li><a href="#sectors" className="sf-nav-link">Sectors</a></li>
           <li><a href="/about" className="sf-nav-link">About Us</a></li>
-          <li><a href="/blog" className="sf-nav-link">Pest Insights</a></li>
           <li><a href="/contact" className="sf-nav-link">Contact</a></li>
         </ul>
 
@@ -669,12 +696,29 @@ export function StorefrontPage() {
               <span>₹{Math.round(packageSubtotal).toLocaleString('en-IN')}</span>
             </div>
 
-            {promo.enabled && (
+            {activeDiscountPercent > 0 && (
               <div className="sf-price-row discount">
-                <span>Promo Discount ({promo.code} -{promo.discountPercent}%):</span>
+                <span>{appliedCoupon ? 'Coupon' : 'Promo'} Discount ({activeDiscountCode} -{activeDiscountPercent}%):</span>
                 <span>-₹{Math.round(discountAmount).toLocaleString('en-IN')}</span>
               </div>
             )}
+
+            <div className="sf-form-group" style={{ margin: '10px 0' }}>
+              <label style={{ fontSize: '12.5px' }}>Have a coupon code?</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  className="sf-form-input"
+                  style={{ flex: 1 }}
+                  value={manualCoupon}
+                  onChange={(e) => setManualCoupon(e.target.value.toUpperCase())}
+                  placeholder="Enter coupon code"
+                />
+                <button type="button" onClick={applyManualCoupon} disabled={checkingCoupon || !manualCoupon.trim()} style={{ padding: '0 16px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                  {checkingCoupon ? 'Checking…' : 'Apply'}
+                </button>
+              </div>
+              {couponMessage && <small style={{ color: appliedCoupon ? '#059669' : '#dc2626' }}>{couponMessage}</small>}
+            </div>
 
             <div className="sf-price-row">
               <span>Estimated GST ({rules.gstPercent}%):</span>
@@ -783,43 +827,33 @@ export function StorefrontPage() {
         )}
       </section>
 
-      {/* 6. COMPLETE 6-PRODUCT SERVICE GRID */}
+      {/* 6. COMPLETE 6-PRODUCT SERVICE GRID — name + 1:1 image only, details live on the linked page */}
       <section className="sf-section sf-reveal" id="services">
         <h2 className="sf-section-title">Comprehensive Pest Treatment Suite</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
           {serviceGrid.map((item, idx) => (
-            <div key={idx} style={{ background: '#ffffff', borderRadius: '20px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <span
-                    style={{
-                      width: '52px',
-                      height: '52px',
-                      borderRadius: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: `linear-gradient(145deg, ${item.tint}22, ${item.tint}0d)`,
-                      color: item.tint,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <item.icon size={26} />
-                  </span>
-                  <span style={{ background: '#e9f7fd', color: '#159bd3', fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>{item.badge}</span>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#063d59', marginBottom: '8px' }}>{item.title}</h3>
-                <p style={{ fontSize: '13.5px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>{item.desc}</p>
+            <a
+              key={idx}
+              href={item.link}
+              style={{ textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}
+            >
+              <div
+                style={{
+                  aspectRatio: '1 / 1',
+                  width: '100%',
+                  borderRadius: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: `linear-gradient(145deg, ${item.tint}22, ${item.tint}0d)`,
+                  color: item.tint,
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <item.icon size={56} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-                <a href={item.link} style={{ color: '#159bd3', fontWeight: 700, fontSize: '13.5px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  View Full Details <ArrowRight size={14} />
-                </a>
-                <button onClick={() => setBookingModalOpen(true)} style={{ background: '#063d59', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>
-                  Book Treatment
-                </button>
-              </div>
-            </div>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#063d59', margin: 0, textAlign: 'center' }}>{item.title}</h3>
+            </a>
           ))}
         </div>
       </section>

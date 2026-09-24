@@ -9,11 +9,11 @@ import { writeBranch } from '../utils/scope.js';
 import { nextReference } from '../services/sequenceService.js';
 import { AppError } from '../utils/AppError.js';
 const router = Router();
-router.use(authenticate, allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON, ROLES.STOREKEEPER));
+router.use(authenticate, allowRoles(ROLES.ADMIN));
 const permissions = {
-  leads: [ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON],
-  customers: [ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON],
-  products: [ROLES.OWNER, ROLES.ADMIN, ROLES.STOREKEEPER],
+  leads: [ROLES.ADMIN],
+  customers: [ROLES.ADMIN],
+  products: [ROLES.ADMIN],
 };
 const ensurePermission = (req, entity) => {
   if (!permissions[entity]?.includes(req.auth.role))
