@@ -122,31 +122,81 @@ export function SiteSettingsPage() {
     setTimeout(() => setToast({ type: '', msg: '' }), 4000);
   };
 
-  // Premise Allotment Handlers
+  // Premise Allotment Handlers (Supports Global Fallback and Service-Specific Allotments)
+  const [selectedServiceForAllotment, setSelectedServiceForAllotment] = useState('global');
+
+  const getActiveAllotments = () => {
+    if (selectedServiceForAllotment === 'global') {
+      return config.premisesAllotments || [];
+    }
+    const serv = (config.serviceCategories || []).find((s) => s.id === selectedServiceForAllotment);
+    if (!serv) return [];
+    if (!serv.premisesAllotments || serv.premisesAllotments.length === 0) {
+      return config.premisesAllotments || [];
+    }
+    return serv.premisesAllotments;
+  };
+
   const handleAllotmentChange = (index, field, val) => {
-    const updated = [...config.premisesAllotments];
-    updated[index] = { ...updated[index], [field]: val };
-    setConfig({ ...config, premisesAllotments: updated });
+    if (selectedServiceForAllotment === 'global') {
+      const updated = [...(config.premisesAllotments || [])];
+      updated[index] = { ...updated[index], [field]: val };
+      setConfig({ ...config, premisesAllotments: updated });
+    } else {
+      const servIndex = (config.serviceCategories || []).findIndex((s) => s.id === selectedServiceForAllotment);
+      if (servIndex === -1) return;
+      const updatedCategories = [...(config.serviceCategories || [])];
+      const targetServ = { ...updatedCategories[servIndex] };
+      const currentList = targetServ.premisesAllotments && targetServ.premisesAllotments.length > 0
+        ? [...targetServ.premisesAllotments]
+        : [...(config.premisesAllotments || [])];
+      currentList[index] = { ...currentList[index], [field]: val };
+      targetServ.premisesAllotments = currentList;
+      updatedCategories[servIndex] = targetServ;
+      setConfig({ ...config, serviceCategories: updatedCategories });
+    }
   };
 
   const handleAddAllotment = () => {
     const newId = `custom_${Date.now()}`;
-    setConfig({
-      ...config,
-      premisesAllotments: [
-        ...config.premisesAllotments,
-        { id: newId, label: 'New Allotment', defaultSqft: 1200, basePrice: 2200, amcPriceMultiplier: 2.2 },
-      ],
-    });
+    const newAllotment = { id: newId, label: 'New Allotment', defaultSqft: 1000, basePrice: 1999, amcPriceMultiplier: 2.2, description: '' };
+    if (selectedServiceForAllotment === 'global') {
+      setConfig({
+        ...config,
+        premisesAllotments: [...(config.premisesAllotments || []), newAllotment],
+      });
+    } else {
+      const servIndex = (config.serviceCategories || []).findIndex((s) => s.id === selectedServiceForAllotment);
+      if (servIndex === -1) return;
+      const updatedCategories = [...(config.serviceCategories || [])];
+      const targetServ = { ...updatedCategories[servIndex] };
+      const currentList = targetServ.premisesAllotments && targetServ.premisesAllotments.length > 0
+        ? [...targetServ.premisesAllotments]
+        : [...(config.premisesAllotments || [])];
+      targetServ.premisesAllotments = [...currentList, newAllotment];
+      updatedCategories[servIndex] = targetServ;
+      setConfig({ ...config, serviceCategories: updatedCategories });
+    }
   };
 
   const handleRemoveAllotment = (index) => {
-    if (config.premisesAllotments.length <= 1) {
+    const currentList = getActiveAllotments();
+    if (currentList.length <= 1) {
       showToast('error', 'Minimum 1 premise allotment is required.');
       return;
     }
-    const updated = config.premisesAllotments.filter((_, i) => i !== index);
-    setConfig({ ...config, premisesAllotments: updated });
+    if (selectedServiceForAllotment === 'global') {
+      const updated = currentList.filter((_, i) => i !== index);
+      setConfig({ ...config, premisesAllotments: updated });
+    } else {
+      const servIndex = (config.serviceCategories || []).findIndex((s) => s.id === selectedServiceForAllotment);
+      if (servIndex === -1) return;
+      const updatedCategories = [...(config.serviceCategories || [])];
+      const targetServ = { ...updatedCategories[servIndex] };
+      targetServ.premisesAllotments = currentList.filter((_, i) => i !== index);
+      updatedCategories[servIndex] = targetServ;
+      setConfig({ ...config, serviceCategories: updatedCategories });
+    }
   };
 
   // Hero Banner Handlers
@@ -652,7 +702,7 @@ export function SiteSettingsPage() {
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-2.5">
               <Globe size={20} className="text-primary" />
-              <CardTitle>Premises Allotments & Base Pricing Rates</CardTitle>
+              <CardTitle>Premises Allotments &amp; Base Pricing Rates</CardTitle>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={handleAddAllotment}>
               <Plus size={16} />
@@ -660,9 +710,32 @@ export function SiteSettingsPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <p className="mb-4 text-[13px] text-muted-foreground">
-              Configure base prices for 1 RK, 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5 BHK, and Commercial properties. These prices directly feed the storefront rate engine.
-            </p>
+            {/* Service Filter / Target Selector */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="allotment-service-select" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Target Service:
+                </Label>
+                <select
+                  id="allotment-service-select"
+                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm font-semibold shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  value={selectedServiceForAllotment}
+                  onChange={(e) => setSelectedServiceForAllotment(e.target.value)}
+                >
+                  <option value="global">🌐 Global Fallback Allotments (Standard BHKs)</option>
+                  {(config.serviceCategories || []).map((serv) => (
+                    <option key={serv.id} value={serv.id}>
+                      {serv.name} ({serv.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {selectedServiceForAllotment === 'global'
+                  ? 'Configuring standard fallback premises (1 RK, 1 BHK, 2 BHK, etc.)'
+                  : `Configuring dynamic premises specifically for ${config.serviceCategories?.find((s) => s.id === selectedServiceForAllotment)?.name || selectedServiceForAllotment}`}
+              </span>
+            </div>
 
             <Table>
               <TableHeader>
@@ -675,12 +748,12 @@ export function SiteSettingsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {config.premisesAllotments?.map((item, idx) => (
+                {getActiveAllotments().map((item, idx) => (
                   <TableRow key={item.id || idx}>
                     <TableCell>
                       <Input
                         type="text"
-                        className="w-32"
+                        className="w-36"
                         value={item.label}
                         onChange={(e) => handleAllotmentChange(idx, 'label', e.target.value)}
                       />

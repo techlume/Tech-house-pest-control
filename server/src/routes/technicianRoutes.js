@@ -13,8 +13,8 @@ router.get(
       role: ROLES.TECHNICIAN,
       active: true,
     })
-      .select('name email phone branchId')
-      .sort({ name: 1 });
+      .select('name email phone branchId createdAt')
+      .sort({ createdAt: -1 });
     res.json({ technicians });
   }),
 );

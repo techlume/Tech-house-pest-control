@@ -156,9 +156,7 @@ router.post(
       _id: req.params.id,
     });
     if (!quotation) throw new AppError(404, 'Quotation not found');
-    if (quotation.status !== 'Accepted')
-      throw new AppError(409, 'Only an accepted quotation can be converted to an invoice');
-    if (await Invoice.exists({ quotationId: quotation._id }))
+    if (quotation.status === 'Converted' || await Invoice.exists({ quotationId: quotation._id }))
       throw new AppError(409, 'This quotation was already converted to an invoice');
 
     const [customer, branch] = await Promise.all([
@@ -226,6 +224,43 @@ router.post(
     await quotation.save();
 
     res.status(201).json({ invoice });
+  }),
+);
+router.patch(
+  '/:id',
+  allowRoles(...editors),
+  asyncHandler(async (req, res) => {
+    const quotation = await Quotation.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!quotation) throw new AppError(404, 'Quotation not found');
+    if (quotation.status === 'Converted')
+      throw new AppError(409, 'A converted quotation cannot be edited');
+    if (req.body.lines) {
+      assertValidLineImages(req.body.lines);
+      const computed = totals(req.body);
+      Object.assign(quotation, computed);
+    }
+    const fields = ['validUntil', 'gstTreatment', 'taxType', 'notes', 'terms', 'propertyId'];
+    Object.assign(quotation, pick(req.body, fields), { updatedBy: req.auth.userId });
+    await quotation.save();
+    res.json({ quotation });
+  }),
+);
+router.delete(
+  '/:id',
+  allowRoles(...editors),
+  asyncHandler(async (req, res) => {
+    const quotation = await Quotation.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!quotation) throw new AppError(404, 'Quotation not found');
+    if (quotation.status === 'Converted')
+      throw new AppError(409, 'A converted quotation cannot be deleted');
+    await quotation.deleteOne();
+    res.status(204).end();
   }),
 );
 router.patch(

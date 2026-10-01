@@ -67,15 +67,22 @@ router.post(
   asyncHandler(async (req, res) => {
     const branchId = writeBranch(req, req.body.branchId);
     const scope = { companyId: req.auth.companyId, branchId };
+    const salespersonName = req.auth.userName || 'Sales Team';
     const lead = await Lead.create({
       ...req.body,
       ...scope,
       status: 'New',
+      salespersonName,
       leadNo: await nextReference(Lead, scope, 'leadNo', 'LEAD'),
       createdBy: req.auth.userId,
       updatedBy: req.auth.userId,
       activities: [
-        { type: 'CREATED', note: 'Lead created', createdBy: req.auth.userId },
+        {
+          type: 'CREATED',
+          note: `Lead created by ${salespersonName}`,
+          salespersonName,
+          createdBy: req.auth.userId,
+        },
       ],
     });
     await audit(req, 'LEAD_CREATED', 'Lead', lead._id);
@@ -110,6 +117,7 @@ router.patch(
       lead.activities.push({
         type: 'NOTE_ADDED',
         note: req.body.notes.trim(),
+        salespersonName: req.auth.userName,
         createdBy: req.auth.userId,
       });
     Object.assign(lead, pick(req.body, editableFields), {
@@ -122,14 +130,41 @@ router.patch(
       lead.activities.push({
         type: 'FOLLOW_UP',
         note: 'Follow-up scheduled for ' + new Date(req.body.nextFollowUpAt).toLocaleString('en-IN'),
+        salespersonName: req.auth.userName,
         createdBy: req.auth.userId,
       });
     if (req.body.status && req.body.status !== previous)
       lead.activities.push({
         type: 'STATUS_CHANGED',
         note: `${previous} → ${req.body.status}`,
+        salespersonName: req.auth.userName,
         createdBy: req.auth.userId,
       });
+    await lead.save();
+    res.json({ lead });
+  }),
+);
+router.post(
+  '/:id/follow-up',
+  allowRoles(...sales),
+  asyncHandler(async (req, res) => {
+    const lead = await Lead.findOne({ ...branchScope(req), _id: req.params.id });
+    if (!lead) throw new AppError(404, 'Lead not found');
+    const { nextFollowUpAt, note } = req.body;
+    if (nextFollowUpAt) lead.nextFollowUpAt = new Date(nextFollowUpAt);
+    const noteText = (note || '').trim();
+    if (noteText) {
+      lead.notes = lead.notes ? `${lead.notes}\n${noteText}` : noteText;
+    }
+    lead.activities.push({
+      type: 'FOLLOW_UP',
+      note: noteText
+        ? `${noteText}${nextFollowUpAt ? ' (Follow-up scheduled for ' + new Date(nextFollowUpAt).toLocaleString('en-IN') + ')' : ''}`
+        : `Follow-up scheduled for ${new Date(nextFollowUpAt).toLocaleString('en-IN')}`,
+      salespersonName: req.auth.userName,
+      createdBy: req.auth.userId,
+    });
+    lead.updatedBy = req.auth.userId;
     await lead.save();
     res.json({ lead });
   }),
@@ -169,6 +204,7 @@ router.post(
       email: lead.email,
       customerType: lead.propertyType,
       sourceLeadId: lead._id,
+      salespersonName: lead.salespersonName || req.auth.userName,
       properties: [
         {
           name: req.body.propertyName || 'Primary Site',
@@ -190,6 +226,7 @@ router.post(
     lead.activities.push({
       type: 'CONVERTED',
       note: `Converted to ${customer.customerNo}`,
+      salespersonName: req.auth.userName,
       createdBy: req.auth.userId,
     });
     await lead.save();

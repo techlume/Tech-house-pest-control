@@ -316,19 +316,20 @@ div > .sf-process-card:nth-child(4) { transition-delay: 0.35s; }
 }
 
 .sf-hero {
-  max-width: 1280px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 48px 24px 32px 24px;
+  padding: 44px 24px 36px 24px;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, 480px);
   gap: 40px;
-  align-items: stretch;
+  align-items: start;
   position: relative;
 }
 
 .sf-hero-left {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .sf-hero-instant-quote {
@@ -463,263 +464,396 @@ div > .sf-process-card:nth-child(4) { transition-delay: 0.35s; }
 
 .sf-hero-title {
   font-family: 'Manrope', sans-serif;
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 800;
-  line-height: 1.15;
-  margin-bottom: 18px;
+  line-height: 1.18;
+  margin-bottom: 16px;
   color: #063d59;
+  letter-spacing: -0.5px;
 }
 
 .sf-hero-sub {
-  font-size: 16px;
+  font-size: 15.5px;
   color: var(--sf-text-muted);
-  line-height: 1.65;
-  margin-bottom: 28px;
+  line-height: 1.6;
+  margin-bottom: 24px;
 }
 
 /* Risk Cards with Slide Hover Effects */
 .sf-risk-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .sf-risk-card {
   background: #ffffff;
   border: 1px solid var(--sf-line);
-  padding: 16px;
-  border-radius: 14px;
+  padding: 14px;
+  border-radius: 12px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sf-risk-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   border-color: #159bd3;
 }
 
 .sf-risk-icon {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   background: #fef2f2;
   color: #ef4444;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .sf-risk-card h4 {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--sf-text-main);
   margin-bottom: 4px;
 }
 
 .sf-risk-card p {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--sf-text-muted);
   margin: 0;
   line-height: 1.4;
 }
 
-/* Pricing Calculator Card */
+/* Science-Led Service Highlights */
+.sf-hero-trust-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(6, 61, 89, 0.08);
+}
+
+.sf-hero-trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.sf-hero-trust-item strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sf-hero-trust-item span {
+  display: block;
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* Pricing Calculator Card - Compact & Premium */
 .sf-calc-card {
-  background: linear-gradient(145deg, #063d59 0%, #082d42 100%);
-  border: 1px solid rgba(21, 155, 211, 0.3);
+  width: 100%;
+  max-width: 480px;
+  min-width: 0;
+  margin-left: auto;
+  align-self: start;
+  height: fit-content;
+  background: linear-gradient(155deg, #072a3e 0%, #051c2a 60%, #03141e 100%);
+  border: 1px solid rgba(56, 189, 248, 0.22);
   border-radius: 20px;
-  padding: 28px;
+  padding: 22px 20px 20px 20px;
   color: #ffffff;
-  box-shadow: 0 20px 40px rgba(6, 61, 89, 0.25);
+  box-shadow: 0 16px 40px -10px rgba(3, 19, 30, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
   transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .sf-calc-card:hover {
-  border-color: rgba(56, 189, 248, 0.6);
-  box-shadow: 0 24px 48px rgba(6, 61, 89, 0.35);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 20px 48px -10px rgba(3, 19, 30, 0.65), 0 0 0 1px rgba(56, 189, 248, 0.15);
 }
 
 .sf-calc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sf-calc-header h3 {
   font-family: 'Manrope', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   margin: 0;
+  color: #ffffff;
+  letter-spacing: -0.2px;
 }
 
-/* Service Selector Tabs */
-.sf-service-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 22px;
+.sf-calc-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  color: #38bdf8;
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
-.sf-service-tab {
+/* Service Selector Sliding Carousel */
+.sf-service-slider-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.sf-service-tabs-slider {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 4px 2px;
+  scroll-snap-type: x proximity;
+  flex: 1;
+  min-width: 0;
+}
+
+.sf-service-tabs-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.sf-service-tab-slide {
+  flex: 0 0 142px;
+  width: 142px;
+  max-width: 142px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 12px 14px;
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 8px 10px;
+  border-radius: 10px;
   cursor: pointer;
   text-align: left;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
+  scroll-snap-align: start;
+  box-sizing: border-box;
 }
 
-.sf-service-tab:hover {
-  background: rgba(255, 255, 255, 0.12);
+.sf-service-tab-slide:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
-.sf-service-tab.active {
-  background: rgba(21, 155, 211, 0.25);
-  border-color: #159bd3;
-  box-shadow: 0 0 0 1px #159bd3;
+.sf-service-tab-slide.active {
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.4), rgba(3, 105, 161, 0.3));
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.sf-slider-nav-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.sf-slider-nav-btn:hover {
+  background: #38bdf8;
+  color: #041a27;
+  border-color: #38bdf8;
 }
 
 .sf-tab-name {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   color: #ffffff;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sf-tab-badge {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #38bdf8;
   font-weight: 600;
+  display: block;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Premise Allotments Grid */
 .sf-label {
-  font-size: 12.5px;
+  font-size: 11px;
   font-weight: 700;
-  color: #c4e1f0;
+  color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
   display: block;
 }
 
 .sf-allotments-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 22px;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 .sf-allotment-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e0f2fe;
-  padding: 10px 6px;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: #e2e8f0;
+  padding: 7px 8px;
+  border-radius: 8px;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 11.5px;
   cursor: pointer;
   text-align: center;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sf-allotment-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 .sf-allotment-btn.active {
-  background: linear-gradient(135deg, #159bd3, #087bad);
+  background: linear-gradient(135deg, #0284c7, #0369a1);
   color: #ffffff;
   border-color: #38bdf8;
-  box-shadow: 0 4px 12px rgba(21, 155, 211, 0.4);
+  box-shadow: 0 3px 10px rgba(2, 132, 199, 0.35);
 }
 
 /* Sqft Input Controls */
 .sf-sqft-box {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: rgba(4, 23, 36, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  background: rgba(3, 16, 26, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 8px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
 }
 
 .sf-sqft-input {
   background: transparent;
   border: none;
-  color: #ffffff;
-  font-size: 18px;
+  color: #38bdf8;
+  font-size: 17px;
   font-weight: 800;
-  width: 100%;
+  width: 90px;
+  text-align: right;
   outline: none;
+  font-family: 'Manrope', sans-serif;
 }
 
 .sf-range-slider {
   width: 100%;
-  accent-color: #159bd3;
-  margin-bottom: 22px;
+  accent-color: #38bdf8;
+  margin-bottom: 14px;
   cursor: pointer;
+  height: 4px;
 }
 
 /* Package Plan Tabs */
 .sf-plan-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sf-plan-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 14px;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  padding: 10px 12px;
+  border-radius: 10px;
   cursor: pointer;
   position: relative;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sf-plan-card:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 .sf-plan-card.active {
-  background: rgba(155, 213, 28, 0.2);
-  border-color: #9bd51c;
+  background: rgba(14, 165, 233, 0.15);
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 .sf-plan-tag {
   position: absolute;
-  top: -8px;
-  right: 10px;
-  background: #9bd51c;
-  color: #062334;
-  font-size: 9.5px;
+  top: -7px;
+  right: 8px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 8.5px;
   font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 6px;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .sf-plan-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   display: block;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sf-plan-desc {
-  font-size: 11px;
-  color: #92c4db;
+  font-size: 10px;
+  color: #94a3b8;
+  display: block;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Price Breakdown Summary Box */
@@ -755,42 +889,42 @@ div > .sf-process-card:nth-child(4) { transition-delay: 0.35s; }
 
 .sf-btn-book {
   width: 100%;
-  background: linear-gradient(135deg, #159bd3, #087bad);
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #ffffff;
   border: none;
-  padding: 16px;
-  border-radius: 12px;
-  font-size: 16px;
+  padding: 13px 18px;
+  border-radius: 10px;
+  font-size: 14.5px;
   font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  box-shadow: 0 6px 20px rgba(21, 155, 211, 0.4);
-  transition: all 0.3s ease;
+  gap: 8px;
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+  transition: all 0.25s ease;
 }
 
 .sf-btn-book:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(21, 155, 211, 0.6);
-  background: linear-gradient(135deg, #087bad, #159bd3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.55);
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
 }
 
 .sf-calc-trust {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sf-calc-trust-title {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #7fb8d4;
-  margin-bottom: 12px;
+  letter-spacing: 0.6px;
+  color: #64748b;
+  margin-bottom: 8px;
 }
 
 .sf-calc-trust ul {
@@ -798,16 +932,17 @@ div > .sf-process-card:nth-child(4) { transition-delay: 0.35s; }
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
 }
 
 .sf-calc-trust li {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 13px;
-  color: #cfe8f5;
-  line-height: 1.4;
+  gap: 6px;
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.3;
 }
 
 .sf-calc-trust li svg {
@@ -916,18 +1051,31 @@ div > .sf-process-card:nth-child(4) { transition-delay: 0.35s; }
 
 .sf-process-grid {
   display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .sf-process-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+.sf-process-grid:has(> :last-child:nth-child(3)) {
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
 }
 
 .sf-process-card {
   background: #ffffff;
   border: 1px solid var(--sf-line);
-  padding: 24px;
+  padding: 22px 20px;
   border-radius: 16px;
   position: relative;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
 }
 
 .sf-process-card:hover {
@@ -935,13 +1083,30 @@ div > .sf-process-card:nth-child(4) { transition-delay: 0.35s; }
   box-shadow: 0 12px 24px rgba(6, 61, 89, 0.08);
 }
 
+.sf-process-card h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #063d59;
+  margin: 0 0 8px 0;
+  padding-right: 36px;
+  line-height: 1.35;
+}
+
+.sf-process-card p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.55;
+}
+
 .sf-step-num {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 900;
   color: rgba(21, 155, 211, 0.25);
   position: absolute;
-  top: 16px;
-  right: 20px;
+  top: 14px;
+  right: 16px;
+  line-height: 1;
 }
 
 /* FAQ Accordion */
@@ -1071,44 +1236,367 @@ footer {
 }
 
 /* ============================================================
-   FAQ — Two column "plus" accordion (matches reference layout)
+   Service 1:1 Photo Tiles Grid (Requirement: 1:1 image + name only)
    ============================================================ */
-.sf-faq-list.sf-faq-grid {
-  max-width: 1100px;
+.sf-service-tiles-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px 24px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .sf-service-tiles-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sf-service-tiles-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 22px;
+  }
+}
+
+.sf-service-tile-card {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-top: 3.5px solid #dc2626;
+  box-shadow: 0 4px 18px rgba(6, 61, 89, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.sf-service-tile-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 36px rgba(6, 61, 89, 0.12);
+  border-color: #cbd5e1;
+  border-top-color: #b91c1c;
+}
+
+.sf-service-tile-img-box {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #f8fafc;
+  position: relative;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sf-service-tile-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.sf-service-tile-card:hover .sf-service-tile-img {
+  transform: scale(1.06);
+}
+
+.sf-service-tile-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(6, 61, 89, 0.88);
+  backdrop-filter: blur(4px);
+  color: #38bdf8;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  z-index: 2;
+}
+
+.sf-service-tile-body {
+  padding: 14px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 12px;
+}
+
+.sf-service-tile-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #063d59;
+  margin: 0;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.sf-service-tile-card:hover .sf-service-tile-name {
+  color: #0284c7;
+}
+
+.sf-service-tile-readmore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #0284c7;
+  color: #0284c7;
+  font-size: 13px;
+  font-weight: 700;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.sf-service-tile-card:hover .sf-service-tile-readmore {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+}
+
+
+/* ============================================================
+   FAQ — Independent Two-Column Accordion (Zero Row Stretch)
+   ============================================================ */
+.sf-faq-columns-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
   align-items: start;
 }
 
-.sf-faq-grid .sf-faq-item {
-  margin-bottom: 0;
+@media (min-width: 820px) {
+  .sf-faq-columns-wrapper {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+.sf-faq-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sf-faq-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(6, 61, 89, 0.04);
+  transition: all 0.25s ease;
 }
 
-.sf-faq-grid .sf-faq-q {
-  padding: 20px 22px;
-  gap: 16px;
+.sf-faq-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 16px rgba(6, 61, 89, 0.08);
 }
 
-.sf-faq-toggle-icon {
+.sf-faq-card.active {
+  border-color: #0284c7;
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.12);
+}
+
+.sf-faq-header-btn {
+  width: 100%;
+  background: #ffffff;
+  border: none;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+  color: #063d59;
+  transition: background-color 0.2s ease;
+}
+
+.sf-faq-header-btn:hover {
+  background: #f8fafc;
+}
+
+.sf-faq-question-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: #063d59;
+}
+
+.sf-faq-indicator {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e9f7fd;
-  color: var(--sf-primary);
+  background: #f1f5f9;
+  color: #0284c7;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
   transition: all 0.2s ease;
 }
 
-.sf-faq-item.open .sf-faq-toggle-icon {
-  background: var(--sf-primary);
-  color: #fff;
-  transform: rotate(135deg);
+.sf-faq-card.active .sf-faq-indicator {
+  background: #0284c7;
+  color: #ffffff;
 }
+
+.sf-faq-body {
+  padding: 0 20px 20px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.sf-faq-body p {
+  margin: 14px 0 0 0;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.65;
+}
+/* Hero Trust Highlights (replaces redundant quote widget in hero column) */
+.sf-hero-trust-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 16px rgba(6, 61, 89, 0.04);
+}
+
+.sf-hero-trust-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.sf-hero-trust-item strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sf-hero-trust-item span {
+  display: block;
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* ============================================================
+   Clean Single Total Calculator Box (Total Amount Alone)
+   ============================================================ */
+.sf-price-summary-single {
+  background: rgba(3, 16, 26, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  box-sizing: border-box;
+}
+
+.sf-coupon-section {
+  margin-bottom: 10px;
+}
+
+.sf-coupon-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 5px;
+}
+
+.sf-coupon-row {
+  display: flex;
+  gap: 6px;
+}
+
+.sf-coupon-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: #ffffff;
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+
+.sf-coupon-input:focus {
+  border-color: #38bdf8;
+}
+
+.sf-coupon-apply-btn {
+  background: #38bdf8;
+  color: #041a27;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sf-coupon-apply-btn:hover {
+  background: #7dd3fc;
+}
+
+.sf-single-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sf-single-total-title {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.sf-single-total-sub {
+  display: block;
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.sf-single-total-val {
+  font-size: 26px;
+  font-weight: 900;
+  color: #34d399;
+  letter-spacing: -0.5px;
+  font-family: 'Manrope', sans-serif;
+}
+
 
 .sf-section-title-wrap {
   text-align: center;
@@ -1366,11 +1854,19 @@ footer {
   box-shadow: 0 16px 30px rgba(220, 38, 38, 0.35);
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 900px) {
+/* Mobile & Tablet Responsiveness */
+@media (max-width: 1024px) {
   .sf-hero {
     grid-template-columns: 1fr;
+    gap: 32px;
   }
+  .sf-calc-card {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 900px) {
   .sf-allotments-grid {
     grid-template-columns: repeat(3, 1fr);
   }

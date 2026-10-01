@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
-import { Download, Eye, FileOutput, IndianRupee, Plus, Printer, Trash2, UserPlus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Download, Eye, FileOutput, IndianRupee, Pencil, Plus, Printer, Trash2, UserPlus } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
 import { StatusBadge } from '../components/StatusBadge';
@@ -82,6 +83,7 @@ const quoteTransitions = {
   Accepted: ['Expired'],
 };
 export function QuotationsPage() {
+  const [searchParams] = useSearchParams();
   const list = useApiList('/quotations?limit=100'),
     customers = useApiList('/customers?limit=100'),
     branches = useApiList('/branches');
@@ -89,6 +91,7 @@ export function QuotationsPage() {
   const canEdit = user?.role === 'ADMIN' ||
     (user?.role === 'SUB_ADMIN' && user?.canEdit);
   const [open, setOpen] = useState(false),
+    [editingQuotationId, setEditingQuotationId] = useState(null),
     [saving, setSaving] = useState(false),
     [error, setError] = useState(''),
     [document, setDocument] = useState(null),
@@ -96,6 +99,23 @@ export function QuotationsPage() {
     [downloadingPdf, setDownloadingPdf] = useState(false),
     [newCustomerOpen, setNewCustomerOpen] = useState(false);
   const docRef = useRef(null);
+
+  useEffect(() => {
+    const custId = searchParams.get('customerId');
+    if (custId && customers.data.length > 0) {
+      const found = customers.data.find((c) => c._id === custId);
+      if (found) {
+        const property = found.properties?.[0];
+        setForm((prev) => ({
+          ...prev,
+          customerId: found._id,
+          propertyId: property?._id || '',
+          branchId: found.branchId || prev.branchId,
+        }));
+        setOpen(true);
+      }
+    }
+  }, [searchParams, customers.data]);
   const handleCustomerCreated = async (created) => {
     await customers.reload();
     const property = created.properties?.[0];
@@ -132,35 +152,84 @@ export function QuotationsPage() {
     e.preventDefault();
     setSaving(true);
     setError('');
+    const payload = {
+      branchId: form.branchId || undefined,
+      customerId: form.customerId,
+      propertyId: form.propertyId,
+      validUntil: form.validUntil,
+      gstTreatment: form.gstTreatment,
+      taxType: form.taxType,
+      terms: form.terms,
+      notes: form.notes,
+      lines: form.lines.map((line) => ({
+        serviceName: line.serviceName,
+        subheading: line.subheading || undefined,
+        description: line.description,
+        imageUrl: line.imageUrl || undefined,
+        visits: Number(line.visits || 1),
+        quantity: Number(line.quantity),
+        rate: Number(line.rate),
+        discount: Number(line.discount || 0),
+        taxRate: Number(line.taxRate),
+      })),
+    };
     try {
-      await http.post('/quotations', {
-        branchId: form.branchId || undefined,
-        customerId: form.customerId,
-        propertyId: form.propertyId,
-        validUntil: form.validUntil,
-        gstTreatment: form.gstTreatment,
-        taxType: form.taxType,
-        terms: form.terms,
-        notes: form.notes,
-        lines: form.lines.map((line) => ({
-          serviceName: line.serviceName,
-          subheading: line.subheading || undefined,
-          description: line.description,
-          imageUrl: line.imageUrl || undefined,
-          visits: Number(line.visits || 1),
-          quantity: Number(line.quantity),
-          rate: Number(line.rate),
-          discount: Number(line.discount || 0),
-          taxRate: Number(line.taxRate),
-        })),
-      });
+      if (editingQuotationId) {
+        await http.patch('/quotations/' + editingQuotationId, payload);
+      } else {
+        await http.post('/quotations', payload);
+      }
       setOpen(false);
+      setEditingQuotationId(null);
       setForm(initial);
       list.reload();
     } catch (x) {
       setError(
-        x.response?.data?.error?.message || 'Could not create quotation',
+        x.response?.data?.error?.message || 'Could not save quotation',
       );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEditQuotation = (q) => {
+    setEditingQuotationId(q._id);
+    const validUntilDate = q.validUntil ? new Date(q.validUntil).toISOString().split('T')[0] : '';
+    setForm({
+      branchId: q.branchId?._id || q.branchId || '',
+      customerId: q.customerId?._id || q.customerId || '',
+      propertyId: q.propertyId?._id || q.propertyId || '',
+      validUntil: validUntilDate,
+      gstTreatment: q.gstTreatment || 'GST',
+      taxType: q.taxType || 'CGST+SGST',
+      terms: q.terms || '',
+      notes: q.notes || '',
+      lines: q.lines?.length
+        ? q.lines.map((l) => ({
+            serviceName: l.serviceName || '',
+            subheading: l.subheading || '',
+            description: l.description || '',
+            imageUrl: l.imageUrl || '',
+            visits: l.visits || 1,
+            quantity: l.quantity || 1,
+            rate: l.rate || '',
+            discount: l.discount || 0,
+            taxRate: l.taxRate || 18,
+          }))
+        : [blankLine()],
+    });
+    setOpen(true);
+  };
+
+  const deleteQuotation = async (q) => {
+    const ok = await appConfirm(`Delete quotation ${q.quotationNo}?`, { title: 'Delete quotation' });
+    if (!ok) return;
+    setSaving(true);
+    try {
+      await http.delete('/quotations/' + q._id);
+      await list.reload();
+    } catch (err) {
+      await appAlert(err.response?.data?.error?.message || 'Could not delete quotation');
     } finally {
       setSaving(false);
     }
@@ -271,9 +340,19 @@ export function QuotationsPage() {
                     <Button variant="ghost" size="icon" title="View quotation" onClick={() => setDocument(x)}>
                       <Eye size={17} />
                     </Button>
-                    {canEdit && x.status === 'Accepted' && (
-                      <Button variant="ghost" size="icon" title="Convert to invoice" disabled={saving} onClick={() => convertToInvoice(x)}>
-                        <FileOutput size={17} />
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" title="Edit quotation" onClick={() => startEditQuotation(x)}>
+                        <Pencil size={17} />
+                      </Button>
+                    )}
+                    {canEdit && x.status !== 'Converted' && (
+                      <Button variant="ghost" size="icon" title="Move to invoice" disabled={saving} onClick={() => convertToInvoice(x)}>
+                        <FileOutput size={17} className="text-primary" />
+                      </Button>
+                    )}
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" title="Delete quotation" disabled={saving} onClick={() => deleteQuotation(x)}>
+                        <Trash2 size={16} className="text-destructive" />
                       </Button>
                     )}
                   </div>
@@ -289,10 +368,10 @@ export function QuotationsPage() {
         )}
       </Card>
 
-      <Dialog open={canEdit && open} onOpenChange={(o) => !o && setOpen(false)}>
+      <Dialog open={canEdit && open} onOpenChange={(o) => { if (!o) { setOpen(false); setEditingQuotationId(null); setForm(initial); } }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Create quotation</DialogTitle>
+            <DialogTitle>{editingQuotationId ? 'Edit quotation' : 'Create quotation'}</DialogTitle>
           </DialogHeader>
           <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={submit}>
             {error && <div className="form-error sm:col-span-2">{error}</div>}

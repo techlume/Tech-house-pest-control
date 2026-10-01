@@ -1,0 +1,62 @@
+{
+  "ants": {
+    "slug": "ants",
+    "name": "Ant Control",
+    "id": "1B8vi5ZcQXS_VJ4GuEVcmlZfmTilKQLMb",
+    "files": []
+  },
+  "bedbugs": {
+    "slug": "bedbugs",
+    "name": "Bed Bug Control",
+    "id": "1WWcTV2q-OIBM4t7tCwSUPLnfgU6n9hNS",
+    "files": []
+  },
+  "birds": {
+    "slug": "birds",
+    "name": "Bird Control",
+    "id": "15Ysx_m7G3C0A03s7NYcZfXWeGkx37erR",
+    "files": []
+  },
+  "cockroaches": {
+    "slug": "cockroaches",
+    "name": "Cockroach Control",
+    "id": "1JVYiCqN8P1W831mwq0zPfabgHgYB1XEl",
+    "files": []
+  },
+  "housefly": {
+    "slug": "housefly",
+    "name": "Housefly Control",
+    "id": "1_5XtQmIkfTNOqzuqIkFguoRngzly4bth",
+    "files": []
+  },
+  "mosquitoes": {
+    "slug": "mosquitoes",
+    "name": "Mosquito Control",
+    "id": "1okR5CveraaPRDNe0pMRrsH1mgr5yPDQN",
+    "files": []
+  },
+  "rodents": {
+    "slug": "rodents",
+    "name": "Rodent Control",
+    "id": "1ip3ljo7e2i3KDqjTct5suEPUa-Y7q9zW",
+    "files": []
+  },
+  "silverfish": {
+    "slug": "silverfish",
+    "name": "Silverfish Control",
+    "id": "1nzZ_y5pDadc9dJycT13BzwqWEM0LRRZ1",
+    "files": []
+  },
+  "spiders": {
+    "slug": "spiders",
+    "name": "Spider Control",
+    "id": "13xPRbRf9H_beHfPoe61yu1ap_PlohYaS",
+    "files": []
+  },
+  "termites": {
+    "slug": "termites",
+    "name": "Termite Control",
+    "id": "1ZPK8RuZ4Rus5NbgylnAwIIUaikWLWTML",
+    "files": []
+  }
+}

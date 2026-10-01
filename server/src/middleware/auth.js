@@ -14,12 +14,13 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
     throw new AppError(401, 'Session expired', 'INVALID_TOKEN');
   }
   const user = await User.findById(payload.sub).select(
-    'companyId branchId role canEdit active',
+    'companyId branchId role canEdit active name',
   );
   if (!user?.active)
     throw new AppError(401, 'Account unavailable', 'ACCOUNT_INACTIVE');
   req.auth = {
     userId: user.id,
+    userName: user.name,
     companyId: user.companyId,
     branchId: user.branchId,
     role: user.role,
@@ -30,13 +31,18 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
 });
 export const allowRoles =
   (...roles) =>
-  (req, _res, next) =>
-    (roles.includes(req.auth.role) ||
-    (req.auth.role === ROLES.SUB_ADMIN &&
-      req.auth.canEdit &&
-      roles.includes(ROLES.ADMIN)))
-      ? next()
-      : next(new AppError(403, 'You do not have permission', 'FORBIDDEN'));
+  (req, _res, next) => {
+    if (roles.includes(req.auth.role)) return next();
+    if (roles.includes(ROLES.ADMIN) && req.auth.role === ROLES.SUB_ADMIN) {
+      if (req.method === 'GET' || req.method === 'HEAD') {
+        return next();
+      }
+      if (req.auth.canEdit) {
+        return next();
+      }
+    }
+    return next(new AppError(403, 'You do not have permission', 'FORBIDDEN'));
+  };
 export const branchScope = (req, branchId) =>
   req.auth.allBranches
     ? branchId

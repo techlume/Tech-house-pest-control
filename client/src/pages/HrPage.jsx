@@ -21,15 +21,14 @@ const attendanceInitial = { employeeId: '', date: today, status: 'Present', punc
 const leaveInitial = { employeeId: '', leaveType: 'Casual', fromDate: today, toDate: today, reason: '' };
 const payrollInitial = { branchId: '', month: new Date().getMonth() + 1, year: new Date().getFullYear(), workingDays: 26 };
 const position = () =>
-  new Promise((resolve, reject) =>
-    navigator.geolocation
-      ? navigator.geolocation.getCurrentPosition(
-          ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }),
-          reject,
-          { enableHighAccuracy: true, timeout: 10000 },
-        )
-      : reject(new Error('GPS unavailable')),
-  );
+  new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve({ latitude: 0, longitude: 0 });
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }),
+      () => resolve({ latitude: 0, longitude: 0 }),
+      { enableHighAccuracy: false, timeout: 6000 },
+    );
+  });
 const NO_LOGIN = 'none';
 
 export function HrPage() {
@@ -40,7 +39,8 @@ export function HrPage() {
   const branches = useApiList('/branches');
   const users = useApiList('/users');
   const { user } = useAuth();
-  const [tab, setTab] = useState('employees');
+  const isTech = user?.role === 'TECHNICIAN';
+  const [tab, setTab] = useState(() => (isTech ? 'attendance' : 'employees'));
   const [modal, setModal] = useState(null);
   const [selectedPayroll, setSelectedPayroll] = useState(null);
   const [employee, setEmployee] = useState(employeeInitial);
@@ -86,12 +86,17 @@ export function HrPage() {
     setSelectedPayroll(data.payroll);
     await payroll.reload();
   };
-  const tabs = [
-    ['employees', 'Employees', Users],
-    ['attendance', 'Attendance', CalendarCheck],
-    ['leaves', 'Leave', CalendarCheck],
-    ...(payrollAccess ? [['payroll', 'Payroll', Wallet]] : []),
-  ];
+  const tabs = isTech
+    ? [
+        ['attendance', 'My Attendance', CalendarCheck],
+        ['leaves', 'Leave Requests', CalendarCheck],
+      ]
+    : [
+        ['employees', 'Employees', Users],
+        ['attendance', 'Attendance', CalendarCheck],
+        ['leaves', 'Leave', CalendarCheck],
+        ...(payrollAccess ? [['payroll', 'Payroll', Wallet]] : []),
+      ];
 
   return (
     <>

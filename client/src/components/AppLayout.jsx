@@ -1,15 +1,23 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
+  BarChart3,
+  Bell,
   CalendarCheck,
   CalendarDays,
   ClipboardCheck,
+  Database,
+  FileSpreadsheet,
   FileText,
   Globe,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
+  Plug,
   ReceiptIndianRupee,
-  Inbox,
+  ShoppingCart,
+  UserCheck,
   UserCog,
   Users,
   Wrench,
@@ -34,22 +42,35 @@ const adminNavigation = [
     items: [
       ['Inspections', '/inspections', ClipboardCheck],
       ['Quotations', '/quotations', FileText],
+      // ['Contracts', '/contracts', FileSpreadsheet],
       ['Calendar', '/calendar', CalendarDays],
       ['Job Cards', '/jobs', Wrench],
       ['Complaints', '/complaints', Inbox],
     ],
   },
   {
-    title: 'Finance',
+    title: 'Inventory & Logistics',
+    items: [
+      ['Inventory', '/inventory', Package],
+      ['Purchases & Expenses', '/procurement', ShoppingCart],
+      ['Data Import & Export', '/data-tools', Database],
+    ],
+  },
+  {
+    title: 'Finance & HR',
     items: [
       ['Billing', '/billing', ReceiptIndianRupee],
+      ['HR & Payroll', '/hr', UserCheck],
+      ['Reports', '/reports', BarChart3],
     ],
   },
   {
     title: 'Administration',
     items: [
+      ['Notifications', '/activity', Bell],
       ['Branches & Users', '/management', UserCog],
-      ['Site Settings', '/site-settings', Globe],
+      ['Integrations', '/integrations', Plug],
+      ['Site Changes', '/site-settings', Globe],
     ],
   },
 ];
@@ -101,25 +122,34 @@ export function AppLayout() {
       : role?.replace('_', ' ') || 'Member';
 
   return (
-    <div className="flex min-h-screen bg-muted">
+    <div className="min-h-screen bg-muted">
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-background transition-transform lg:static lg:translate-x-0',
-          open ? 'translate-x-0' : '-translate-x-full',
+          'fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col border-r border-[#04283b] bg-[#063d59] text-white shadow-xl transition-transform duration-200 ease-in-out',
+          open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
+        style={{
+          background: 'linear-gradient(180deg, #05324b 0%, #063d59 50%, #074768 100%)',
+        }}
       >
-        <div className="flex items-center gap-3 border-b border-border px-5 py-5">
-          <img
-            className="h-10 w-10 rounded-lg object-contain"
-            src="/tech-house-logo.png"
-            alt="Tech House Pest Control"
-          />
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1.5 shadow-md">
+            <img
+              className="h-full w-full object-contain"
+              src="/tech-house-logo.png"
+              alt="Tech House Pest Control"
+            />
+          </div>
           <div className="min-w-0 flex-1">
-            <strong className="block truncate text-sm font-extrabold">Tech House</strong>
-            <small className="block truncate text-xs text-muted-foreground">Pest Control Platform</small>
+            <strong className="block truncate text-sm font-extrabold tracking-tight text-white">
+              Tech House
+            </strong>
+            <small className="block truncate text-[11px] font-semibold text-[#38bdf8]">
+              Pest Control Platform
+            </small>
           </div>
           <button
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"
             onClick={() => setOpen(false)}
             aria-label="Close Sidebar"
           >
@@ -130,7 +160,7 @@ export function AppLayout() {
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {navGroups.map((group) => (
             <div key={group.title} className="mb-5">
-              <span className="mb-1.5 block px-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="mb-1.5 block px-3 text-[10.5px] font-bold uppercase tracking-wider text-sky-200/70">
                 {group.title}
               </span>
               <div className="flex flex-col gap-0.5">
@@ -141,15 +171,15 @@ export function AppLayout() {
                     end={to === '/admin'}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
+                        'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
                         isActive
-                          ? 'bg-accent text-accent-foreground'
-                          : 'text-foreground/80 hover:bg-muted',
+                          ? 'bg-[#159bd3] text-white font-bold shadow-md shadow-sky-950/30'
+                          : 'text-slate-200 hover:bg-white/10 hover:text-white',
                       )
                     }
                     onClick={() => setOpen(false)}
                   >
-                    <Icon size={18} />
+                    <Icon size={18} className="shrink-0" />
                     <span>{label}</span>
                   </NavLink>
                 ))}
@@ -158,22 +188,34 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3 border-t border-border px-4 py-4">
-          <Avatar>
-            <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || 'US'}</AvatarFallback>
+        <div className="flex shrink-0 items-center gap-3 border-t border-white/10 bg-black/15 px-4 py-4">
+          <Avatar className="h-9 w-9 border border-white/20">
+            <AvatarFallback className="bg-[#159bd3] text-xs font-bold text-white">
+              {user?.name?.slice(0, 2).toUpperCase() || 'US'}
+            </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <strong className="block truncate text-sm font-bold">{user?.name || 'User'}</strong>
-            <small className="block truncate text-xs capitalize text-muted-foreground">{roleLabel}</small>
+            <strong className="block truncate text-sm font-bold text-white">
+              {user?.name || 'User'}
+            </strong>
+            <small className="block truncate text-xs font-medium capitalize text-sky-300">
+              {roleLabel}
+            </small>
           </div>
-          <Button variant="ghost" size="icon" title="Log out" onClick={logout}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-slate-300 hover:bg-white/15 hover:text-red-300"
+            title="Log out"
+            onClick={logout}
+          >
             <LogOut size={18} />
           </Button>
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-4 border-b border-border bg-background px-5 py-4">
+      <div className="flex min-h-screen flex-col lg:pl-72">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background px-5">
           <button
             className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-foreground hover:bg-muted lg:hidden"
             onClick={() => setOpen(true)}
@@ -189,10 +231,11 @@ export function AppLayout() {
             Assigned branch
           </span>
         </header>
-        <section className="flex-1 overflow-y-auto p-5">
+
+        <main className="flex-1 p-5">
           <Outlet />
-        </section>
-      </main>
+        </main>
+      </div>
       {open && (
         <div
           className="fixed inset-0 z-30 bg-black/40 lg:hidden"

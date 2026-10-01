@@ -1,5 +1,6 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { MapPin, Pencil, Plus, Search, UserRoundCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FilePlus, MapPin, Pencil, Plus, Search, Trash2, UserRoundCheck } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
 import { appAlert, appConfirm, appPrompt } from '../lib/dialog';
@@ -60,6 +61,7 @@ const leadTransitions = {
   Negotiation: ['Won', 'Lost'],
 };
 export function CrmPage() {
+  const navigate = useNavigate();
   const [tabs, setTab] = useState('leads'),
     [search, setSearch] = useState(''),
     [modal, setModal] = useState(null),
@@ -67,6 +69,7 @@ export function CrmPage() {
     [managedLead, setManagedLead] = useState(null),
     [propertyCustomer, setPropertyCustomer] = useState(null),
     [property, setProperty] = useState(emptyProperty),
+    [newFollowUpNote, setNewFollowUpNote] = useState(''),
     [leadManagement, setLeadManagement] = useState({
       nextFollowUpAt: '',
       notes: '',
@@ -219,6 +222,53 @@ export function CrmPage() {
       setSaving(false);
     }
   };
+
+  const addFollowUp = async (e) => {
+    if (e) e.preventDefault();
+    if (!leadManagement.nextFollowUpAt && !newFollowUpNote.trim()) {
+      setMessage('Please enter a follow-up date or note');
+      return;
+    }
+    setSaving(true);
+    setMessage('');
+    try {
+      await http.post('/leads/' + managedLead._id + '/follow-up', {
+        nextFollowUpAt: leadManagement.nextFollowUpAt || null,
+        note: newFollowUpNote.trim(),
+      });
+      setNewFollowUpNote('');
+      const res = await http.get('/leads');
+      const updated = (res.data?.items || []).find((l) => l._id === managedLead._id);
+      if (updated) setManagedLead(updated);
+      await leads.reload();
+    } catch (x) {
+      setMessage(x.response?.data?.error?.message || 'Could not record follow-up');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteLead = async (row) => {
+    const ok = await appConfirm(`Delete lead "${row.name}" (${row.leadNo})?`, { title: 'Delete Lead' });
+    if (!ok) return;
+    try {
+      await http.delete('/leads/' + row._id);
+      await leads.reload();
+    } catch (x) {
+      await appAlert(x.response?.data?.error?.message || 'Could not delete lead');
+    }
+  };
+
+  const deleteCustomer = async (row) => {
+    const ok = await appConfirm(`Delete customer "${row.name}" (${row.customerNo})?`, { title: 'Delete Customer' });
+    if (!ok) return;
+    try {
+      await http.delete('/customers/' + row._id);
+      await customers.reload();
+    } catch (x) {
+      await appAlert(x.response?.data?.error?.message || 'Could not delete customer');
+    }
+  };
   return (
     <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -270,12 +320,13 @@ export function CrmPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Reference</TableHead>
+              <TableHead>{tabs === 'leads' ? 'Lead No' : 'Customer ID'}</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Salesperson</TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead>{tabs === 'leads' ? 'Source' : 'Properties'}</TableHead>
+              <TableHead>{tabs === 'leads' ? 'Source' : 'Sites'}</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -285,8 +336,13 @@ export function CrmPage() {
                   <strong className="font-semibold">{row.leadNo || row.customerNo}</strong>
                 </TableCell>
                 <TableCell>
-                  <div>{row.name}</div>
+                  <div className="font-medium text-foreground">{row.name}</div>
                   <small className="text-muted-foreground">{row.propertyType || row.customerType}</small>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                    {row.salespersonName || row.createdBy?.name || '—'}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <div>{row.phone}</div>
@@ -324,18 +380,18 @@ export function CrmPage() {
                       )}
                   </div>
                 </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
                     {canEdit && tabs === 'leads' && !row.convertedCustomerId && row.status !== 'Lost' && (
                       <Button variant="ghost" size="icon" title="Convert to customer" onClick={() => convert(row)}>
-                        <UserRoundCheck size={18} />
+                        <UserRoundCheck size={18} className="text-emerald-600" />
                       </Button>
                     )}
                     {canEdit && tabs === 'leads' && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Assignment and follow-up"
+                        title="Follow-up and notes"
                         onClick={() => {
                           const followUp = row.nextFollowUpAt
                             ? new Date(row.nextFollowUpAt)
@@ -345,6 +401,7 @@ export function CrmPage() {
                               followUp.getMinutes() - followUp.getTimezoneOffset(),
                             );
                           setMessage('');
+                          setNewFollowUpNote('');
                           setManagedLead(row);
                           setLeadManagement({
                             nextFollowUpAt: followUp
@@ -355,6 +412,27 @@ export function CrmPage() {
                         }}
                       >
                         <Pencil size={17} />
+                      </Button>
+                    )}
+                    {canEdit && tabs === 'leads' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Delete lead"
+                        onClick={() => deleteLead(row)}
+                      >
+                        <Trash2 size={16} className="text-destructive" />
+                      </Button>
+                    )}
+                    {canEdit && tabs === 'customers' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white"
+                        title="Create quotation"
+                        onClick={() => navigate('/quotations?customerId=' + row._id)}
+                      >
+                        <FilePlus size={14} /> Create Quotation
                       </Button>
                     )}
                     {canEdit && tabs === 'customers' && (
@@ -404,6 +482,16 @@ export function CrmPage() {
                         <Pencil size={17} />
                       </Button>
                     )}
+                    {canEdit && tabs === 'customers' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Delete customer"
+                        onClick={() => deleteCustomer(row)}
+                      >
+                        <Trash2 size={16} className="text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -429,6 +517,7 @@ export function CrmPage() {
             setValue={setLead}
             branches={branches.data}
             allBranches={allBranches}
+            currentUser={user}
             message={message}
             saving={saving}
             submit={saveLead}
@@ -464,33 +553,52 @@ export function CrmPage() {
             <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={saveLeadManagement}>
               {message && <div className="form-error sm:col-span-2">{message}</div>}
               <Field label="Salesperson">
-                <Input disabled value={managedLead.createdBy?.name || '—'} />
+                <Input disabled value={managedLead.salespersonName || managedLead.createdBy?.name || '—'} />
               </Field>
-              <Field label="Next follow-up">
+              <Field label="Next follow-up date & time">
                 <Input
                   type="datetime-local"
                   value={leadManagement.nextFollowUpAt}
                   onChange={(e) => setLeadManagement({ ...leadManagement, nextFollowUpAt: e.target.value })}
                 />
               </Field>
-              <Field label="Notes" wide>
+              <Field label="Add follow-up notes" wide>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter discussion notes from call or visit…"
+                    value={newFollowUpNote}
+                    onChange={(e) => setNewFollowUpNote(e.target.value)}
+                  />
+                  <Button type="button" disabled={saving} onClick={addFollowUp}>
+                    Add note
+                  </Button>
+                </div>
+              </Field>
+              <Field label="General lead notes" wide>
                 <Textarea
-                  rows="3"
+                  rows="2"
                   value={leadManagement.notes}
                   onChange={(e) => setLeadManagement({ ...leadManagement, notes: e.target.value })}
                 />
               </Field>
               <div className="grid gap-2 sm:col-span-2">
-                <Label className="text-sm text-foreground">Activity timeline</Label>
-                <div className="grid max-h-56 gap-2 overflow-y-auto rounded-xl border border-border p-2">
+                <Label className="text-sm text-foreground">Activity timeline & follow-up log</Label>
+                <div className="grid max-h-56 gap-2 overflow-y-auto rounded-xl border border-border p-2.5">
                   {[...(managedLead.activities || [])].reverse().map((activity) => (
                     <div
-                      key={activity._id}
-                      className="grid grid-cols-[110px_1fr] items-start gap-2 border-b border-border pb-2 text-xs last:border-0 last:pb-0 sm:grid-cols-[110px_1fr_auto]"
+                      key={activity._id || Math.random()}
+                      className="grid grid-cols-[100px_1fr_auto] items-start gap-2 border-b border-border pb-2 text-xs last:border-0 last:pb-0"
                     >
-                      <strong className="font-semibold">{activity.type}</strong>
-                      <span>{activity.note}</span>
-                      <small className="text-muted-foreground">
+                      <strong className="font-semibold text-primary">{activity.type}</strong>
+                      <div>
+                        <span>{activity.note}</span>
+                        {activity.salespersonName && (
+                          <span className="ml-1.5 text-[11px] text-muted-foreground">
+                            (by {activity.salespersonName})
+                          </span>
+                        )}
+                      </div>
+                      <small className="text-muted-foreground whitespace-nowrap">
                         {new Date(activity.createdAt).toLocaleString('en-IN')}
                       </small>
                     </div>
@@ -501,7 +609,7 @@ export function CrmPage() {
                 </div>
               </div>
               <div className="flex justify-end sm:col-span-2">
-                <Button disabled={saving}>{saving ? 'Saving…' : 'Save assignment'}</Button>
+                <Button disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
               </div>
             </form>
           )}
@@ -597,6 +705,7 @@ function LeadForm({
   setValue,
   branches,
   allBranches,
+  currentUser,
   message,
   saving,
   submit,
@@ -605,6 +714,9 @@ function LeadForm({
   return (
     <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={submit}>
       {message && <div className="form-error sm:col-span-2">{message}</div>}
+      <Field label="Salesperson (Auto-assigned)">
+        <Input disabled value={currentUser?.name || currentUser?.email || 'Current user'} />
+      </Field>
       <BranchField
         value={value.branchId}
         setValue={(v) => set('branchId', v)}

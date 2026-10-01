@@ -1,6 +1,6 @@
 const linkClass = 'text-slate-300 hover:text-white transition-colors';
 
-export function StorefrontFooter() {
+export function StorefrontFooter({ onRegisterComplaint }) {
   return (
     <footer className="border-t border-white/10 bg-[#041724] px-6 pb-8 pt-14 text-slate-300">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -16,21 +16,38 @@ export function StorefrontFooter() {
 
         <div>
           <h4 className="mb-4 text-base font-bold text-white">Pest Eradication Suite</h4>
-          <ul className="grid gap-2 text-sm">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:text-sm">
             <li><a href="/services/cockroach" className={linkClass}>Cockroach Control</a></li>
-            <li><a href="/services/termite" className={linkClass}>Termite Drill-Fill-Seal</a></li>
+            <li><a href="/services/termite" className={linkClass}>Termite Protection</a></li>
             <li><a href="/services/rodent" className={linkClass}>Rodent & Rat Control</a></li>
-            <li><a href="/services/mosquito" className={linkClass}>Mosquito Fogging & Larvicide</a></li>
-            <li><a href="/services/bed-bug" className={linkClass}>Bed Bug Eradication</a></li>
+            <li><a href="/services/mosquito" className={linkClass}>Mosquito Defense</a></li>
+            <li><a href="/services/bed-bug" className={linkClass}>Bed Bug Removal</a></li>
             <li><a href="/services/bird-control" className={linkClass}>Bird Netting & Spikes</a></li>
+            <li><a href="/services/ants" className={linkClass}>Ant Eradication</a></li>
+            <li><a href="/services/housefly" className={linkClass}>Housefly Control</a></li>
+            <li><a href="/services/silverfish" className={linkClass}>Silverfish Control</a></li>
+            <li><a href="/services/spider" className={linkClass}>Spider Web Removal</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 className="mb-4 text-base font-bold text-white">Corporate & Insights</h4>
+          <h4 className="mb-4 text-base font-bold text-white">Corporate & Support</h4>
           <ul className="grid gap-2 text-sm">
             <li><a href="/about" className={linkClass}>About Tech House</a></li>
             <li><a href="/contact" className={linkClass}>Contact & Regional Hubs</a></li>
+            {onRegisterComplaint ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={onRegisterComplaint}
+                  className={`${linkClass} text-left cursor-pointer bg-transparent border-0 p-0 text-amber-400 hover:text-amber-300 font-semibold`}
+                >
+                  Register Complaint / Grievance
+                </button>
+              </li>
+            ) : (
+              <li><a href="/contact#complaint" className={`${linkClass} text-amber-400 font-semibold`}>Register Complaint</a></li>
+            )}
           </ul>
         </div>
 

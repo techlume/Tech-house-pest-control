@@ -724,22 +724,24 @@ button {
 
 /* Swipe-style quotation / tax invoice document — full grid borders, matches the reference EST-3 layout exactly */
 .quote-document{background:#fff;color:#17202a;min-width:min(760px,85vw);font-size:.82rem;border:1.5px solid #1f2937}
-.quote-doc-kicker{display:flex;justify-content:space-between;font-size:.75rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#1f2937;padding:.6rem .9rem;border-bottom:1.5px solid #1f2937}
+.quote-doc-kicker{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#159bd3;padding:.6rem .9rem;border-bottom:1.5px solid #1f2937}
+.quote-doc-kicker span:last-child{color:#4b5563;font-size:.72rem;font-weight:600}
 
 .quote-doc-headtable{width:100%;border-collapse:collapse}
 .quote-doc-headtable td{border:1px solid #1f2937;padding:.7rem .9rem;vertical-align:top}
-.quote-doc-brand-cell{width:56%}
-.quote-doc-meta-cell span{display:block;color:#5c7080;font-size:.7rem;margin-bottom:.2rem}
-.quote-doc-meta-cell strong{color:#17202a;font-size:.8rem}
+.quote-doc-brand-cell{width:58%}
+.quote-doc-meta-cell span{display:block;color:#4b5563;font-size:.72rem;font-weight:600;margin-bottom:.2rem}
+.quote-doc-meta-cell strong{color:#111827;font-size:.84rem;font-weight:700}
 
-.quote-doc-brand{display:flex;gap:.7rem}
-.quote-doc-logo{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#f4f7f6;padding:4px;flex-shrink:0}
-.quote-doc-brand h2{margin:0 0 .25rem;font-size:1rem;color:#159bd3}
-.quote-doc-brand p{margin:0;font-size:.74rem;color:#374151;line-height:1.5}
+.quote-doc-brand{display:flex;align-items:center;gap:.9rem}
+.quote-doc-logo{width:76px;height:76px;object-fit:contain;border-radius:0;background:transparent;padding:0;flex-shrink:0}
+.quote-doc-brand h2{margin:0 0 .2rem;font-size:1.05rem;font-weight:800;color:#111827;letter-spacing:-.01em}
+.quote-doc-brand p{margin:0;font-size:.75rem;color:#374151;line-height:1.45;font-weight:500}
 
-.quote-doc-customer{border:1px solid #1f2937;border-top:0;padding:.7rem .9rem;display:grid;gap:.2rem;font-size:.8rem}
-.quote-doc-customer>span:first-child{color:#5c7080;font-weight:700;text-transform:uppercase;font-size:.68rem;letter-spacing:.03em}
-.quote-doc-billing-label{margin-top:.25rem;color:#5c7080;font-weight:700;text-transform:uppercase;font-size:.68rem;letter-spacing:.03em}
+.quote-doc-customer{border:1px solid #1f2937;border-top:0;padding:.7rem .9rem;display:grid;gap:.25rem;font-size:.82rem}
+.quote-doc-customer>span:first-child{color:#4b5563;font-weight:700;text-transform:uppercase;font-size:.7rem;letter-spacing:.03em}
+.quote-doc-customer strong{color:#111827;font-size:.85rem;font-weight:800}
+.quote-doc-billing-label{margin-top:.25rem;color:#4b5563;font-weight:700;text-transform:uppercase;font-size:.7rem;letter-spacing:.03em}
 
 .quote-doc-table{width:100%;border-collapse:collapse}
 .quote-doc-table th,.quote-doc-table td{border:1px solid #1f2937;padding:.55rem .65rem;text-align:left;font-size:.78rem;vertical-align:top}

@@ -50,6 +50,16 @@ const siteConfigSchema = new mongoose.Schema(
         tagline: { type: String, default: '' },
         basePriceMultiplier: { type: Number, default: 1.0 },
         includedFeatures: [{ type: String }],
+        premisesAllotments: [
+          {
+            id: { type: String, required: true },
+            label: { type: String, required: true },
+            defaultSqft: { type: Number, required: true },
+            basePrice: { type: Number, required: true },
+            amcPriceMultiplier: { type: Number, default: 2.2 },
+            description: { type: String, default: '' },
+          },
+        ],
       },
     ],
     heroBanners: [

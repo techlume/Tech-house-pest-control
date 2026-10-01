@@ -31,6 +31,7 @@ router.get(
     const [items, total] = await Promise.all([
       Customer.find(filter)
         .populate({ path: 'sourceLeadId', populate: { path: 'createdBy', select: 'name' } })
+        .populate('createdBy', 'name')
         .sort({ createdAt: -1 }).skip(skip).limit(limit),
       Customer.countDocuments(filter),
     ]);
@@ -46,6 +47,7 @@ router.post(
     const customer = await Customer.create({
       ...req.body,
       ...scope,
+      salespersonName: req.body.salespersonName || req.auth.userName,
       customerNo: await nextReference(Customer, scope, 'customerNo', 'CUS'),
       createdBy: req.auth.userId,
       updatedBy: req.auth.userId,
@@ -132,6 +134,19 @@ router.patch(
     customer.updatedBy = req.auth.userId;
     await customer.save();
     res.json({ property, customer });
+  }),
+);
+router.delete(
+  '/:id',
+  allowRoles(...editors),
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!customer) throw new AppError(404, 'Customer not found');
+    await customer.deleteOne();
+    res.status(204).end();
   }),
 );
 export default router;

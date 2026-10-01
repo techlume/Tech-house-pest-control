@@ -276,9 +276,43 @@ export function BillingPage() {
       </div>
 
       {isAuditor ? (
-        <div className="mt-5 flex items-center gap-2">
-          <Label className="mb-0">Month</Label>
-          <Input type="month" className="w-auto" value={auditMonth} onChange={(e) => setAuditMonth(e.target.value)} />
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="mb-0 font-semibold">Select Audit Month:</Label>
+            <Input type="month" className="w-auto font-medium" value={auditMonth} onChange={(e) => setAuditMonth(e.target.value)} />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              const rows = [
+                ['Invoice No', 'Customer Name', 'Issue Date', 'Due Date', 'GST Treatment', 'Taxable Amount', 'Tax Total', 'Grand Total', 'Paid', 'Due'],
+                ...visibleInvoices.map((inv) => [
+                  inv.invoiceNo,
+                  inv.customerId?.name || '',
+                  new Date(inv.issueDate).toLocaleDateString('en-IN'),
+                  new Date(inv.dueDate).toLocaleDateString('en-IN'),
+                  inv.gstTreatment,
+                  inv.subtotal,
+                  inv.taxTotal,
+                  inv.grandTotal,
+                  inv.paidAmount,
+                  inv.dueAmount,
+                ]),
+              ];
+              const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `GST_Invoices_${auditMonth}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            <Download size={15} /> Export Month Invoices (CSV)
+          </Button>
         </div>
       ) : (
         <Tabs value={tab} onValueChange={setTab} className="mt-5">
@@ -341,6 +375,17 @@ export function BillingPage() {
                         <Button variant="ghost" size="icon" title="View invoice" onClick={() => setDocument(x)}>
                           <Eye size={17} />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Download invoice PDF"
+                          onClick={() => {
+                            setDocument(x);
+                            setTimeout(() => downloadPdf(x.invoiceNo + '.pdf'), 250);
+                          }}
+                        >
+                          <Download size={17} />
+                        </Button>
                         {canEdit && x.dueAmount > 0 && (
                           <Button variant="ghost" size="icon" title="Get shareable payment link" disabled={saving} onClick={() => generatePaymentLink(x)}>
                             <WalletCards size={17} />
@@ -382,9 +427,22 @@ export function BillingPage() {
                       ))}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" title="View receipt" onClick={() => setReceiptDocument(x)}>
-                        <Eye size={17} />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" title="View receipt" onClick={() => setReceiptDocument(x)}>
+                          <Eye size={17} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Download receipt PDF"
+                          onClick={() => {
+                            setReceiptDocument(x);
+                            setTimeout(() => downloadPdf(x.receiptNo + '.pdf'), 250);
+                          }}
+                        >
+                          <Download size={17} />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -17,8 +17,8 @@ const managers = [ROLES.ADMIN];
 const editors = [ROLES.ADMIN, ROLES.TECHNICIAN];
 const transitions = {
   Added: ['Assigned', 'In process', 'Cancelled'],
-  Assigned: ['In process', 'Cancelled'],
-  'In process': ['Completed', 'Cancelled'],
+  Assigned: ['Assigned', 'In process', 'Cancelled'],
+  'In process': ['In process', 'Completed', 'Cancelled'],
   Completed: [],
   Cancelled: [],
 };
@@ -46,8 +46,9 @@ router.get(
       };
     const [items, total] = await Promise.all([
       Inspection.find(filter)
-        .populate('customerId', 'name customerNo')
-        .populate('inspectorId', 'name')
+        .populate('customerId', 'name customerNo phone email')
+        .populate('inspectorId', 'name phone')
+        .populate('branchId', 'name')
         .sort({ scheduledAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -192,6 +193,14 @@ router.post(
     if (findings.length) item.findings = findings;
     if (Array.isArray(req.body.recommendedServices) && req.body.recommendedServices.length)
       item.recommendedServices = req.body.recommendedServices;
+    item.beforeImages = storedMedia.body.evidence
+      .filter((e) => e.type === 'Before Photo')
+      .map((e) => e.url);
+    item.afterImages = storedMedia.body.evidence
+      .filter((e) => e.type === 'After Photo')
+      .map((e) => e.url);
+    item.completionNotes = req.body.recommendations || req.body.treatmentPerformed || '';
+    item.jobCardId = job._id;
     item.status = 'Completed';
     item.completedAt = job.completedAt;
     item.updatedBy = req.auth.userId;

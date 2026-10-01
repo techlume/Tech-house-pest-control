@@ -65,10 +65,24 @@ export function InspectionsPage() {
     const term = schedule.customerSearch.trim();
     if (!open || term.length < 2) { setCustomerResults([]); return; }
     let cancelled = false;
-    const timer = setTimeout(() => {
-      http.get('/customers?limit=20&search=' + encodeURIComponent(term)).then(({ data }) => {
-        if (!cancelled) setCustomerResults(data.items);
-      }).catch(() => {});
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await http.get('/customers?limit=20&search=' + encodeURIComponent(term));
+        if (cancelled) return;
+        let items = data.items || [];
+        if (items.length === 0 && term.length >= 3) {
+          try {
+            const invRes = await http.get('/billing/invoices');
+            const matchedInv = (invRes.data?.items || []).find((inv) =>
+              inv.invoiceNo?.toLowerCase().includes(term.toLowerCase())
+            );
+            if (matchedInv && matchedInv.customerId) {
+              items = [matchedInv.customerId];
+            }
+          } catch {}
+        }
+        if (!cancelled) setCustomerResults(items);
+      } catch {}
     }, 300);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [schedule.customerSearch, open]);
@@ -77,7 +91,7 @@ export function InspectionsPage() {
     setSchedule((s) => ({
       ...s,
       customerId: c._id,
-      customerLabel: `${c.customerNo} — ${c.name} — ${c.phone}`,
+      customerLabel: `${c.customerNo || ''} — ${c.name} — ${c.phone}`,
       branchLabel: c.branchId?.name || '',
       siteAddress: c.properties?.[0]?.address?.line1 || '',
       customerSearch: '',
@@ -123,7 +137,10 @@ export function InspectionsPage() {
     if (!assignInspectorId) return;
     setSaving(true);
     try {
-      await http.patch('/inspections/' + assignItem._id, { inspectorId: assignInspectorId });
+      await http.patch('/inspections/' + assignItem._id, {
+        inspectorId: assignInspectorId,
+        status: 'Assigned',
+      });
       setAssignItem(null);
       await list.reload();
     } catch (x) {

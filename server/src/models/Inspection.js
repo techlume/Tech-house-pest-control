@@ -54,6 +54,10 @@ const schema = new mongoose.Schema(
       },
     ],
     notes: String,
+    beforeImages: [{ type: String }],
+    afterImages: [{ type: String }],
+    completionNotes: String,
+    jobCardId: { type: mongoose.Schema.Types.ObjectId, ref: 'JobCard' },
     completedAt: Date,
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
