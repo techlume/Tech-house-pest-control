@@ -788,10 +788,5 @@ function QuotationDocument({ quotation }) {
         <span>Powered By Tech House Pest Control</span>
       </footer>
     </article>
-
-      <footer className='quote-doc-footer'>
-        <span>This is a computer generated document and requires no signature.</span>
-      </footer>
-    </article>
   );
 }
