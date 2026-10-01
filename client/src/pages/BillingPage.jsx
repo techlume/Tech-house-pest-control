@@ -612,7 +612,7 @@ function InvoiceDocument({ invoice }) {
                 <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
                 <div>
                   <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
-                  {isGst && <p>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</p>}
+                  {isGst && <p><strong>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</strong></p>}
                   <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
                   <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
                   <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
@@ -680,8 +680,11 @@ function InvoiceDocument({ invoice }) {
         </tbody>
       </table>
 
-      <div className='quote-doc-summary-row'>
-        <span>Total Items / Qty : {invoice.lines.length} / {totalQty}</span>
+      <div className='quote-doc-qty-bar'>
+        Total Items / Qty : {invoice.lines.length} / {totalQty}
+      </div>
+
+      <div className='quote-doc-summary-box'>
         <div className='quote-doc-totals'>
           <span>Taxable Amount <strong>₹{Number(invoice.subtotal).toLocaleString('en-IN')}</strong></span>
           {showSplitTax ? (
@@ -693,21 +696,27 @@ function InvoiceDocument({ invoice }) {
             <span>{invoice.taxType} <strong>₹{Number(invoice.taxTotal).toLocaleString('en-IN')}</strong></span>
           ) : null}
           <span className='grand'>Total <strong>₹{Number(invoice.grandTotal).toLocaleString('en-IN')}</strong></span>
+          <div className='quote-doc-paid-split'>
+            <span>Paid: <strong>₹{Number(invoice.paidAmount).toLocaleString('en-IN')}</strong></span>
+            <span>Balance due: <strong>₹{Number(invoice.dueAmount).toLocaleString('en-IN')}</strong></span>
+          </div>
         </div>
       </div>
 
-      <div className='quote-doc-words'>Total amount (in words): {amountInWordsRupees(invoice.grandTotal)}</div>
-
-      <div className='quote-doc-payment'>
-        <span>Paid: <strong>₹{Number(invoice.paidAmount).toLocaleString('en-IN')}</strong></span>
-        <span>Balance due: <strong>₹{Number(invoice.dueAmount).toLocaleString('en-IN')}</strong></span>
+      <div className='quote-doc-words-bar'>
+        Total amount (in words): {amountInWordsRupees(invoice.grandTotal)}
       </div>
 
-      <table className='quote-doc-signrow'>
+      <table className='quote-doc-sign-grid'>
         <tbody>
           <tr>
-            <td>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</td>
-            <td className='align-right'>Authorized Signatory</td>
+            <td></td>
+            <td className='sign-cell'>
+              <div className='quote-doc-sign-content'>
+                <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
+                <span>Authorized Signatory</span>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -733,9 +742,9 @@ function InvoiceDocument({ invoice }) {
         </table>
       )}
 
-      <footer className='quote-doc-footer'>
-        <span>This is a computer generated document and requires no signature.</span>
-        <span>This is a regular GST invoice and not a government IRN e-invoice.</span>
+      <footer className='quote-doc-footer-bar'>
+        <span>Page 1 / 1 • {invoice.invoiceNo} • This is a computer generated document and requires no signature.</span>
+        <span>Powered By Tech House Pest Control</span>
       </footer>
     </article>
   );
@@ -802,22 +811,28 @@ function ReceiptDocument({ receipt }) {
           ))}
         </tbody>
       </table>
-      <div className="quote-doc-summary-row">
+      <div className="quote-doc-summary-box">
         <div className="quote-doc-totals">
           <span className="grand">Total received <strong>₹{Number(receipt.amount).toLocaleString('en-IN')}</strong></span>
         </div>
       </div>
-      <div className="quote-doc-words">Amount received (in words): {amountInWordsRupees(receipt.amount)}</div>
-      <table className="quote-doc-signrow">
+      <div className="quote-doc-words-bar">Amount received (in words): {amountInWordsRupees(receipt.amount)}</div>
+      <table className="quote-doc-sign-grid">
         <tbody>
           <tr>
-            <td>For {COMPANY_DEFAULTS.legalName}</td>
-            <td className="align-right">Authorized Signatory</td>
+            <td></td>
+            <td className="sign-cell">
+              <div className="quote-doc-sign-content">
+                <span>For {COMPANY_DEFAULTS.legalName}</span>
+                <span>Authorized Signatory</span>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
-      <footer className="quote-doc-footer">
-        <span>This is a computer generated document and requires no signature.</span>
+      <footer className="quote-doc-footer-bar">
+        <span>Page 1 / 1 • {receipt.receiptNo} • This is a computer generated document and requires no signature.</span>
+        <span>Powered By Tech House Pest Control</span>
       </footer>
     </article>
   );
