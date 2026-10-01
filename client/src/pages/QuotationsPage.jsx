@@ -661,7 +661,7 @@ function QuotationDocument({ quotation }) {
                 <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
                 <div>
                   <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
-                  {isGst && <p>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</p>}
+                  {isGst && <p><strong>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</strong></p>}
                   <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
                   <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
                   <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
@@ -731,8 +731,11 @@ function QuotationDocument({ quotation }) {
         </tbody>
       </table>
 
-      <div className='quote-doc-summary-row'>
-        <span>Total Items / Qty : {quotation.lines.length} / {totalQty}</span>
+      <div className='quote-doc-qty-bar'>
+        Total Items / Qty : {quotation.lines.length} / {totalQty}
+      </div>
+
+      <div className='quote-doc-summary-box'>
         <div className='quote-doc-totals'>
           <span>Taxable Amount <strong>₹{Number(quotation.subtotal - (quotation.discountTotal || 0)).toLocaleString('en-IN')}</strong></span>
           {showSplitTax ? (
@@ -747,13 +750,20 @@ function QuotationDocument({ quotation }) {
         </div>
       </div>
 
-      <div className='quote-doc-words'>Total amount (in words): {amountInWordsRupees(quotation.grandTotal)}</div>
+      <div className='quote-doc-words-bar'>
+        Total amount (in words): {amountInWordsRupees(quotation.grandTotal)}
+      </div>
 
-      <table className='quote-doc-signrow'>
+      <table className='quote-doc-sign-grid'>
         <tbody>
           <tr>
-            <td>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</td>
-            <td className='align-right'>Authorized Signatory</td>
+            <td></td>
+            <td className='sign-cell'>
+              <div className='quote-doc-sign-content'>
+                <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
+                <span>Authorized Signatory</span>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -772,6 +782,12 @@ function QuotationDocument({ quotation }) {
           </tr>
         </tbody>
       </table>
+
+      <footer className='quote-doc-footer-bar'>
+        <span>Page 1 / 1 • {quotation.quotationNo} • This is a computer generated document and requires no signature.</span>
+        <span>Powered By Tech House Pest Control</span>
+      </footer>
+    </article>
 
       <footer className='quote-doc-footer'>
         <span>This is a computer generated document and requires no signature.</span>
