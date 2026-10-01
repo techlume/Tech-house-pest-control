@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { JobCard } from '../models/JobCard.js';
 import { Visit } from '../models/Visit.js';
-import { authenticate, branchScope, allowRoles, customerDataScope } from '../middleware/auth.js';
+import { authenticate, branchScope, allowRoles } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { nextReference } from '../services/sequenceService.js';
@@ -19,12 +19,7 @@ import {
 } from '../services/fileStorageService.js';
 const router = Router();
 router.use(authenticate);
-const fieldRoles = allowRoles(
-  ROLES.OWNER,
-  ROLES.ADMIN,
-  ROLES.DISPATCHER,
-  ROLES.TECHNICIAN,
-);
+const fieldRoles = allowRoles(ROLES.ADMIN, ROLES.TECHNICIAN);
 const findVisit = async (req) => {
   const visit = await Visit.findOne({
     ...branchScope(req),
@@ -42,10 +37,7 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = pagination(req.query);
-    const filter = {
-      ...branchScope(req, req.query.branchId),
-      ...customerDataScope(req),
-    };
+    const filter = { ...branchScope(req, req.query.branchId) };
     if (req.auth.role === ROLES.TECHNICIAN)
       filter.technicianId = req.auth.userId;
     const [items, total] = await Promise.all([
@@ -53,26 +45,13 @@ router.get(
         .populate('customerId', 'name')
         .populate('technicianId', 'name')
         .populate('visitId', 'visitNo serviceName scheduledAt')
+        .populate('inspectionId', 'inspectionNo scheduledAt')
         .sort({ completedAt: -1 })
         .skip(skip)
         .limit(limit),
       JobCard.countDocuments(filter),
     ]);
     res.json({ items, page, limit, total });
-  }),
-);
-router.post(
-  '/visits/:visitId/en-route',
-  fieldRoles,
-  asyncHandler(async (req, res) => {
-    const visit = await findVisit(req);
-    if (!['Assigned', 'Scheduled'].includes(visit.status))
-      throw new AppError(409, 'Only an assigned or scheduled visit can begin travel');
-    visit.status = 'En Route';
-    visit.updatedBy = req.auth.userId;
-    await visit.save();
-    await audit(req, 'VISIT_EN_ROUTE', 'Visit', visit._id);
-    res.json({ visit });
   }),
 );
 router.post(
@@ -151,7 +130,7 @@ router.post(
 );
 router.get(
   '/visits/:visitId/locations',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.DISPATCHER, ROLES.TECHNICIAN),
+  fieldRoles,
   asyncHandler(async (req, res) => {
     const visit = await findVisit(req);
     const items = await TechnicianLocation.find({ visitId: visit._id })

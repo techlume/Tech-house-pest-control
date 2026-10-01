@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -31,13 +31,16 @@ import {
   Droplets,
   BedDouble,
   Quote,
+  MessageSquareWarning,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { http } from '../services/http';
 import { useAuth } from '../context/AuthContext';
 import { appAlert } from '../lib/dialog';
 import { ScrollToTopButton } from '../components/ScrollToTopButton';
 import { StorefrontFooter } from '../components/StorefrontFooter';
-import { InstantQuoteWidget } from '../components/InstantQuoteWidget';
+import { RegisterComplaintDialog } from '../components/RegisterComplaintDialog';
 import '../storefront.css';
 
 export function StorefrontPage() {
@@ -49,6 +52,10 @@ export function StorefrontPage() {
   const [loading, setLoading] = useState(true);
   const [promoBarVisible, setPromoBarVisible] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [manualCoupon, setManualCoupon] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponMessage, setCouponMessage] = useState('');
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   // Calculator State
@@ -70,8 +77,9 @@ export function StorefrontPage() {
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(false);
 
-  // Instant Quote Widget selection (overrides the main calculator when set)
+  // Quick Order & Complaint Dialog
   const [quickOrder, setQuickOrder] = useState(null);
+  const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
 
   const handleQuickBookNow = (order) => {
     setQuickOrder(order);
@@ -90,6 +98,15 @@ export function StorefrontPage() {
 
   // FAQ Accordion Toggle State
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
+
+  // Service Tabs Slider Navigation
+  const serviceTabsRef = useRef(null);
+  const scrollServices = (direction) => {
+    if (serviceTabsRef.current) {
+      const scrollAmount = direction === 'left' ? -220 : 220;
+      serviceTabsRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   // Load public site configuration from backend API
   useEffect(() => {
@@ -121,24 +138,6 @@ export function StorefrontPage() {
     }
   };
 
-  // Premises allotments fallback or dynamic
-  const allotments = config?.premisesAllotments || [
-    { id: '1_rk', label: '1 RK', defaultSqft: 350, basePrice: 1199, amcPriceMultiplier: 2.2 },
-    { id: '1_bhk', label: '1 BHK', defaultSqft: 600, basePrice: 1499, amcPriceMultiplier: 2.2 },
-    { id: '2_bhk', label: '2 BHK', defaultSqft: 1000, basePrice: 1999, amcPriceMultiplier: 2.2 },
-    { id: '3_bhk', label: '3 BHK', defaultSqft: 1400, basePrice: 2499, amcPriceMultiplier: 2.2 },
-    { id: '4_bhk', label: '4 BHK', defaultSqft: 1800, basePrice: 2999, amcPriceMultiplier: 2.2 },
-    { id: '5_bhk', label: '5 BHK', defaultSqft: 2400, basePrice: 3999, amcPriceMultiplier: 2.2 },
-    { id: 'commercial', label: 'Commercial', defaultSqft: 3000, basePrice: 4999, amcPriceMultiplier: 2.4 },
-  ];
-
-  const currentAllotment = allotments.find((a) => a.id === selectedAllotmentId) || allotments[2];
-
-  const handleSelectAllotment = (allotment) => {
-    setSelectedAllotmentId(allotment.id);
-    setSqft(allotment.defaultSqft);
-  };
-
   // Pricing Rules
   const rules = config?.pricingRules || {
     minSqft: 200,
@@ -155,13 +154,61 @@ export function StorefrontPage() {
   };
 
   const services = config?.serviceCategories || [
-    { id: 'cockroach', name: 'Cockroach Residential Blitz', badge: 'Blitz Intensive', basePriceMultiplier: 1.0 },
-    { id: 'termite', name: 'Termite Protection Barrier', badge: '5 Year Warranty', basePriceMultiplier: 1.35 },
-    { id: 'bedbug', name: 'Bed Bug Thermal & Spray Eradication', badge: '90 Days Guarantee', basePriceMultiplier: 1.25 },
-    { id: 'general_pest', name: 'General Pest & Insect Control', badge: 'All-in-One Shield', basePriceMultiplier: 0.9 },
+    { id: 'cockroach', name: 'Cockroach Domino Gel', badge: 'Bayer Gel Tech', basePriceMultiplier: 1.0 },
+    { id: 'termite', name: 'Termite Drill-Fill-Seal', badge: '3-Year Warranty', basePriceMultiplier: 1.4 },
+    { id: 'rodent', name: 'Rodent & Rat Defense', badge: 'Wire Shield', basePriceMultiplier: 1.1 },
+    { id: 'mosquito', name: 'Mosquito Vector Fogging', badge: 'Dengue Shield', basePriceMultiplier: 1.05 },
+    { id: 'bedbug', name: 'Bed Bug Thermal Steam', badge: '90-Day Guarantee', basePriceMultiplier: 1.25 },
+    { id: 'birds', name: 'Bird Netting & Spikes', badge: 'Garware HDPE', basePriceMultiplier: 1.3 },
+    { id: 'ants', name: 'Ant Colony Eradication', badge: 'Queen Kill', basePriceMultiplier: 0.9 },
+    { id: 'housefly', name: 'Housefly & Fly Defense', badge: 'Vector Shield', basePriceMultiplier: 0.95 },
+    { id: 'silverfish', name: 'Silverfish Document Shield', badge: 'Paper Defense', basePriceMultiplier: 0.9 },
+    { id: 'spider', name: 'Spider & Cobweb Removal', badge: 'De-Web Barrier', basePriceMultiplier: 0.85 },
   ];
 
   const currentService = services.find((s) => s.id === selectedService) || services[0];
+
+  // Dynamic premises allotments: Service-tailored if defined, else global config, else fallback
+  const allotments = useMemo(() => {
+    if (currentService?.premisesAllotments && currentService.premisesAllotments.length > 0) {
+      return currentService.premisesAllotments;
+    }
+    return config?.premisesAllotments && config.premisesAllotments.length > 0
+      ? config.premisesAllotments
+      : [
+          { id: '1_rk', label: '1 RK', defaultSqft: 350, basePrice: 1199, amcPriceMultiplier: 2.2 },
+          { id: '1_bhk', label: '1 BHK', defaultSqft: 600, basePrice: 1499, amcPriceMultiplier: 2.2 },
+          { id: '2_bhk', label: '2 BHK', defaultSqft: 1000, basePrice: 1999, amcPriceMultiplier: 2.2 },
+          { id: '3_bhk', label: '3 BHK', defaultSqft: 1400, basePrice: 2499, amcPriceMultiplier: 2.2 },
+          { id: '4_bhk', label: '4 BHK', defaultSqft: 1800, basePrice: 2999, amcPriceMultiplier: 2.2 },
+          { id: '5_bhk', label: '5 BHK', defaultSqft: 2400, basePrice: 3999, amcPriceMultiplier: 2.2 },
+          { id: 'commercial', label: 'Commercial', defaultSqft: 3000, basePrice: 4999, amcPriceMultiplier: 2.4 },
+        ];
+  }, [currentService, config?.premisesAllotments]);
+
+  // Synchronize selected allotment whenever service or allotments change
+  useEffect(() => {
+    if (allotments && allotments.length > 0) {
+      const match = allotments.find((a) => a.id === selectedAllotmentId);
+      if (!match) {
+        setSelectedAllotmentId(allotments[0].id);
+        setSqft(allotments[0].defaultSqft);
+      }
+    }
+  }, [allotments, selectedAllotmentId]);
+
+  const currentAllotment = allotments.find((a) => a.id === selectedAllotmentId) || allotments[0] || {
+    id: 'default',
+    label: 'Standard Unit',
+    defaultSqft: 1000,
+    basePrice: 1999,
+    amcPriceMultiplier: 2.2,
+  };
+
+  const handleSelectAllotment = (allotment) => {
+    setSelectedAllotmentId(allotment.id);
+    setSqft(allotment.defaultSqft);
+  };
 
   // Calculate Price Breakdown
   const baseRate = currentAllotment.basePrice * (currentService.basePriceMultiplier || 1.0);
@@ -173,7 +220,9 @@ export function StorefrontPage() {
     packageSubtotal = packageSubtotal * (currentAllotment.amcPriceMultiplier || 2.2);
   }
 
-  const discountAmount = promo.enabled ? packageSubtotal * (promo.discountPercent / 100) : 0;
+  const activeDiscountPercent = appliedCoupon ? appliedCoupon.discountPercent : (promo.enabled ? promo.discountPercent : 0);
+  const activeDiscountCode = appliedCoupon ? appliedCoupon.code : promo.code;
+  const discountAmount = packageSubtotal * (activeDiscountPercent / 100);
   const netBeforeGst = packageSubtotal - discountAmount;
   const gstAmount = netBeforeGst * (rules.gstPercent / 100);
   const grandTotal = Math.round(netBeforeGst + gstAmount);
@@ -183,6 +232,28 @@ export function StorefrontPage() {
     navigator.clipboard.writeText(promo.code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2500);
+  };
+
+  const applyManualCoupon = async () => {
+    const code = manualCoupon.trim();
+    if (!code) return;
+    setCheckingCoupon(true);
+    setCouponMessage('');
+    try {
+      const { data } = await http.get('/coupons/validate', { params: { code } });
+      if (data.valid) {
+        setAppliedCoupon({ code: data.code, discountPercent: data.discountPercent });
+        setCouponMessage('Coupon applied: ' + data.discountPercent + '% off');
+      } else {
+        setAppliedCoupon(null);
+        setCouponMessage(data.message || 'Invalid coupon code');
+      }
+    } catch {
+      setAppliedCoupon(null);
+      setCouponMessage('Could not validate coupon right now');
+    } finally {
+      setCheckingCoupon(false);
+    }
   };
 
   const handleStaffLoginClick = () => {
@@ -316,6 +387,9 @@ export function StorefrontPage() {
     },
   ];
 
+  const col1Faqs = faqs.filter((_, i) => i % 2 === 0);
+  const col2Faqs = faqs.filter((_, i) => i % 2 === 1);
+
   const serviceGrid = [
     {
       title: 'Cockroach Eradication',
@@ -324,6 +398,7 @@ export function StorefrontPage() {
       badge: 'Bayer Gel Tech',
       icon: Bug,
       tint: '#159bd3',
+      image: '/hd_assets/cockroach_hd.jpg',
     },
     {
       title: 'Termite Protection',
@@ -332,6 +407,7 @@ export function StorefrontPage() {
       badge: '3-Year Warranty',
       icon: ShieldCheck,
       tint: '#087bad',
+      image: '/hd_assets/termite_hd.jpg',
     },
     {
       title: 'Rodent & Rat Defense',
@@ -340,6 +416,7 @@ export function StorefrontPage() {
       badge: 'Wire Shield',
       icon: Rat,
       tint: '#063d59',
+      image: '/hd_assets/rodent_hd.jpg',
     },
     {
       title: 'Mosquito Vector Defense',
@@ -348,6 +425,7 @@ export function StorefrontPage() {
       badge: 'Dengue Shield',
       icon: Droplets,
       tint: '#0891b2',
+      image: '/hd_assets/mosquito_hd.jpg',
     },
     {
       title: 'Bed Bug Removal',
@@ -356,6 +434,7 @@ export function StorefrontPage() {
       badge: '90-Day Guarantee',
       icon: BedDouble,
       tint: '#7c3aed',
+      image: '/hd_assets/bedbug_hd.jpg',
     },
     {
       title: 'Bird Netting & Spikes',
@@ -364,6 +443,43 @@ export function StorefrontPage() {
       badge: 'Garware HDPE',
       icon: Bird,
       tint: '#9bd51c',
+      image: '/hd_assets/bird_netting_hd.jpg',
+    },
+    {
+      title: 'Ant Colony Eradication',
+      desc: 'Queen nest destruction with non-repellent transfer chemistry.',
+      link: '/services/ants',
+      badge: 'Queen Kill',
+      icon: Bug,
+      tint: '#0891b2',
+      image: '/hd_assets/ant_hd.jpg',
+    },
+    {
+      title: 'Housefly Control',
+      desc: 'Bio-enzyme drain sanitation and residual contact surface shields.',
+      link: '/services/housefly',
+      badge: 'Hygiene Shield',
+      icon: Zap,
+      tint: '#d97706',
+      image: '/hd_assets/housefly_hd.jpg',
+    },
+    {
+      title: 'Silverfish Control',
+      desc: 'Document and archive protection with inorganic desiccant dust.',
+      link: '/services/silverfish',
+      badge: 'Paper Defense',
+      icon: FileText,
+      tint: '#64748b',
+      image: '/hd_assets/silverfish_hd.jpg',
+    },
+    {
+      title: 'Spider Web Removal',
+      desc: 'Complete ceiling de-webbing & repellent perimeter barriers.',
+      link: '/services/spider',
+      badge: 'Cobweb Clean',
+      icon: Sparkles,
+      tint: '#475569',
+      image: '/hd_assets/spider_hd.jpg',
     },
   ];
 
@@ -457,11 +573,20 @@ export function StorefrontPage() {
           <li><a href="#services" className="sf-nav-link">Services</a></li>
           <li><a href="#sectors" className="sf-nav-link">Sectors</a></li>
           <li><a href="/about" className="sf-nav-link">About Us</a></li>
-          <li><a href="/blog" className="sf-nav-link">Pest Insights</a></li>
           <li><a href="/contact" className="sf-nav-link">Contact</a></li>
         </ul>
 
         <div className="sf-header-actions">
+          <button
+            type="button"
+            className="sf-btn-login"
+            style={{ background: '#f59e0b', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+            onClick={() => setComplaintDialogOpen(true)}
+          >
+            <MessageSquareWarning size={15} />
+            <span>Complaint</span>
+          </button>
+
           <a href={`tel:${config?.contactInfo?.phone || '18002122125'}`} className="sf-btn-call">
             <Phone size={16} />
             <span>{config?.contactInfo?.tollFree || '1800-212-2125'}</span>
@@ -553,17 +678,29 @@ export function StorefrontPage() {
             </div>
           </div>
 
-          {/* Instant Quote Widget — fills the remaining hero column height */}
-          <div className="sf-hero-instant-quote">
-            <div className="sf-hero-tag">
-              <Zap size={15} />
-              <span>3-Click Instant Pricing</span>
+          {/* Science-Led Service Highlights (replaces short duplicate quote card) */}
+          <div className="sf-hero-trust-badges">
+            <div className="sf-hero-trust-item">
+              <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+              <div>
+                <strong>Bayer &amp; Syngenta Certified Chemistry</strong>
+                <span>100% CIB approved, odourless, baby &amp; pet safe formulations</span>
+              </div>
             </div>
-            <h2 className="sf-hero-instant-quote-title">Not Sure Which Plan You Need?</h2>
-            <p className="sf-hero-instant-quote-sub">
-              Pick your pest, your service type, and your property size — get an instant, transparent price with ₹500 OFF applied automatically.
-            </p>
-            <InstantQuoteWidget onBookNow={handleQuickBookNow} config={config?.instantQuote} />
+            <div className="sf-hero-trust-item">
+              <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+              <div>
+                <strong>365-Day Unlimited AMC Warranty</strong>
+                <span>Unlimited free re-treatments with zero questions asked on AMC packages</span>
+              </div>
+            </div>
+            <div className="sf-hero-trust-item">
+              <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+              <div>
+                <strong>Verified Expert Entomologists</strong>
+                <span>Background-verified technicians with digital work reporting &amp; GPS tracking</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -571,24 +708,44 @@ export function StorefrontPage() {
         <div className="sf-calc-card">
           <div className="sf-calc-header">
             <h3>Instant Pricing Calculator</h3>
-            <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '700' }}>
-              <Calculator size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+            <span className="sf-calc-live-badge">
+              <Calculator size={12} />
               Live Rate Engine
             </span>
           </div>
 
-          {/* Service Selector Tabs */}
-          <div className="sf-service-tabs">
-            {services.map((serv) => (
-              <div
-                key={serv.id}
-                className={`sf-service-tab ${selectedService === serv.id ? 'active' : ''}`}
-                onClick={() => setSelectedService(serv.id)}
-              >
-                <span className="sf-tab-name">{serv.name}</span>
-                <span className="sf-tab-badge">{serv.badge}</span>
-              </div>
-            ))}
+          {/* Service Selector Tabs — Sliding Carousel */}
+          <div className="sf-service-slider-wrap">
+            <button
+              type="button"
+              className="sf-slider-nav-btn prev"
+              onClick={() => scrollServices('left')}
+              aria-label="Previous service"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="sf-service-tabs-slider" ref={serviceTabsRef}>
+              {services.map((serv) => (
+                <div
+                  key={serv.id}
+                  className={`sf-service-tab-slide ${selectedService === serv.id ? 'active' : ''}`}
+                  onClick={() => setSelectedService(serv.id)}
+                >
+                  <span className="sf-tab-name">{serv.name}</span>
+                  <span className="sf-tab-badge">{serv.badge}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="sf-slider-nav-btn next"
+              onClick={() => scrollServices('right')}
+              aria-label="Next service"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
 
           {/* Premise Allotments Grid */}
@@ -607,16 +764,18 @@ export function StorefrontPage() {
 
           {/* Sqft Input & Slider Controls */}
           <div className="sf-sqft-box">
-            <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '600' }}>Area Sqft:</span>
-            <input
-              type="number"
-              className="sf-sqft-input"
-              value={sqft}
-              min="200"
-              max="5000"
-              onChange={(e) => setSqft(Number(e.target.value) || 200)}
-            />
-            <span style={{ fontSize: '13px', color: '#64748b' }}>sq ft</span>
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Carpet Area:</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <input
+                type="number"
+                className="sf-sqft-input"
+                value={sqft}
+                min="200"
+                max="5000"
+                onChange={(e) => setSqft(Number(e.target.value) || 200)}
+              />
+              <span style={{ fontSize: '12px', color: '#64748b' }}>sq ft</span>
+            </div>
           </div>
 
           <input
@@ -662,43 +821,56 @@ export function StorefrontPage() {
             </div>
           </div>
 
-          {/* Price Summary Box */}
-          <div className="sf-price-summary">
-            <div className="sf-price-row">
-              <span>Subtotal ({currentAllotment.label} - {sqft} sqft):</span>
-              <span>₹{Math.round(packageSubtotal).toLocaleString('en-IN')}</span>
-            </div>
-
-            {promo.enabled && (
-              <div className="sf-price-row discount">
-                <span>Promo Discount ({promo.code} -{promo.discountPercent}%):</span>
-                <span>-₹{Math.round(discountAmount).toLocaleString('en-IN')}</span>
+          {/* Total Amount Alone (No Calculation Separation) */}
+          <div className="sf-price-summary-single">
+            <div className="sf-coupon-section">
+              <label className="sf-coupon-label">Have a coupon code?</label>
+              <div className="sf-coupon-row">
+                <input
+                  className="sf-coupon-input"
+                  value={manualCoupon}
+                  onChange={(e) => setManualCoupon(e.target.value.toUpperCase())}
+                  placeholder="Enter coupon code"
+                />
+                <button
+                  type="button"
+                  className="sf-coupon-apply-btn"
+                  onClick={applyManualCoupon}
+                  disabled={checkingCoupon || !manualCoupon.trim()}
+                >
+                  {checkingCoupon ? 'Checking…' : 'Apply'}
+                </button>
               </div>
-            )}
-
-            <div className="sf-price-row">
-              <span>Estimated GST ({rules.gstPercent}%):</span>
-              <span>₹{Math.round(gstAmount).toLocaleString('en-IN')}</span>
+              {couponMessage && (
+                <div style={{ color: appliedCoupon ? '#34d399' : '#f87171', fontSize: '12px', marginTop: '6px' }}>
+                  {couponMessage}
+                </div>
+              )}
             </div>
 
-            <div className="sf-price-row grand">
-              <span>Final Total:</span>
-              <span style={{ color: '#10b981' }}>₹{grandTotal.toLocaleString('en-IN')}</span>
+            <div className="sf-single-total-row">
+              <div>
+                <span className="sf-single-total-title">Total Payable Amount</span>
+                <span className="sf-single-total-sub">All Inclusive (Service, Chemicals &amp; GST)</span>
+              </div>
+              <div className="sf-single-total-val">
+                ₹{grandTotal.toLocaleString('en-IN')}
+              </div>
             </div>
           </div>
 
           <button className="sf-btn-book" onClick={() => setBookingModalOpen(true)}>
             <span>BOOK SERVICE NOW</span>
-            <ArrowRight size={18} />
+            <ArrowRight size={17} />
           </button>
 
           <div className="sf-calc-trust">
-            <span className="sf-calc-trust-title">What's Included</span>
+            <span className="sf-calc-trust-title">Guaranteed Standards</span>
             <ul>
-              <li><CheckCircle2 size={15} /> 100% Odourless &amp; Pet-Safe Formulations</li>
-              <li><CheckCircle2 size={15} /> CIB-Approved Bayer &amp; Syngenta Chemicals</li>
-              <li><CheckCircle2 size={15} /> Certified, Background-Verified Technicians</li>
-              <li><CheckCircle2 size={15} /> 365-Day Re-Treatment Warranty on AMC Plans</li>
+              <li><CheckCircle2 size={13} /> 100% Odourless Gel</li>
+              <li><CheckCircle2 size={13} /> Bayer / Syngenta Safe</li>
+              <li><CheckCircle2 size={13} /> Certified Entomologists</li>
+              <li><CheckCircle2 size={13} /> 365-Day AMC Warranty</li>
             </ul>
           </div>
         </div>
@@ -783,43 +955,41 @@ export function StorefrontPage() {
         )}
       </section>
 
-      {/* 6. COMPLETE 6-PRODUCT SERVICE GRID */}
+      {/* 6. COMPLETE 10-PRODUCT SERVICE GRID — Dedicated page on click */}
       <section className="sf-section sf-reveal" id="services">
-        <h2 className="sf-section-title">Comprehensive Pest Treatment Suite</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+        <div className="sf-section-title-wrap">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#0284c7', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+            <Sparkles size={16} /> Specialized Solutions
+          </div>
+          <h2 className="sf-section-title">Comprehensive 10-Pest Treatment Suite</h2>
+          <div className="sf-section-title-underline" />
+          <p style={{ color: '#64748b', fontSize: '14.5px', maxWidth: '640px', margin: '10px auto 0 auto' }}>
+            Select any pest category below to inspect its biological life cycle, authentic field evidence, and tailored eradication protocol.
+          </p>
+        </div>
+        <div className="sf-service-tiles-grid">
           {serviceGrid.map((item, idx) => (
-            <div key={idx} style={{ background: '#ffffff', borderRadius: '20px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <span
-                    style={{
-                      width: '52px',
-                      height: '52px',
-                      borderRadius: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: `linear-gradient(145deg, ${item.tint}22, ${item.tint}0d)`,
-                      color: item.tint,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <item.icon size={26} />
-                  </span>
-                  <span style={{ background: '#e9f7fd', color: '#159bd3', fontSize: '11px', fontWeight: 800, padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>{item.badge}</span>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#063d59', marginBottom: '8px' }}>{item.title}</h3>
-                <p style={{ fontSize: '13.5px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>{item.desc}</p>
+            <a
+              key={idx}
+              href={item.link}
+              className="sf-service-tile-card"
+            >
+              <div className="sf-service-tile-img-box">
+                <span className="sf-service-tile-badge">{item.badge}</span>
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="sf-service-tile-img"
+                  loading="lazy"
+                />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-                <a href={item.link} style={{ color: '#159bd3', fontWeight: 700, fontSize: '13.5px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  View Full Details <ArrowRight size={14} />
-                </a>
-                <button onClick={() => setBookingModalOpen(true)} style={{ background: '#063d59', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>
-                  Book Treatment
-                </button>
+              <div className="sf-service-tile-body">
+                <h3 className="sf-service-tile-name">{item.title}</h3>
+                <span className="sf-service-tile-readmore">
+                  Read more
+                </span>
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </section>
@@ -987,27 +1157,67 @@ export function StorefrontPage() {
         </div>
       </section>
 
-      {/* 13. FAQS — TWO COLUMN ACCORDION */}
+      {/* 13. FAQS — ACCORDION WITHOUT ANIMATION */}
       <section className="sf-section sf-reveal" id="faqs">
         <div className="sf-section-title-wrap">
           <h2>Frequently Asked Questions</h2>
           <div className="sf-section-title-underline" />
         </div>
-        <div className="sf-faq-list sf-faq-grid">
-          {faqs.map((faq, idx) => (
-            <div key={idx} className={`sf-faq-item ${openFaqIndex === idx ? 'open' : ''}`}>
-              <div className="sf-faq-q" onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}>
-                <span>{faq.q}</span>
-                <span className="sf-faq-toggle-icon"><Plus size={15} /></span>
-              </div>
-              {openFaqIndex === idx && <div className="sf-faq-a">{faq.a}</div>}
-            </div>
-          ))}
+        <div className="sf-faq-columns-wrapper">
+          <div className="sf-faq-col">
+            {col1Faqs.map((faq, idx) => {
+              const actualIdx = idx * 2;
+              const isOpen = openFaqIndex === actualIdx;
+              return (
+                <div key={actualIdx} className={`sf-faq-card ${isOpen ? 'active' : ''}`}>
+                  <button
+                    type="button"
+                    className="sf-faq-header-btn"
+                    onClick={() => setOpenFaqIndex(isOpen ? null : actualIdx)}
+                    aria-expanded={isOpen}
+                  >
+                    <span className="sf-faq-question-text">{faq.q}</span>
+                    <span className="sf-faq-indicator">{isOpen ? '−' : '+'}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="sf-faq-body">
+                      <p>{faq.a}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="sf-faq-col">
+            {col2Faqs.map((faq, idx) => {
+              const actualIdx = idx * 2 + 1;
+              const isOpen = openFaqIndex === actualIdx;
+              return (
+                <div key={actualIdx} className={`sf-faq-card ${isOpen ? 'active' : ''}`}>
+                  <button
+                    type="button"
+                    className="sf-faq-header-btn"
+                    onClick={() => setOpenFaqIndex(isOpen ? null : actualIdx)}
+                    aria-expanded={isOpen}
+                  >
+                    <span className="sf-faq-question-text">{faq.q}</span>
+                    <span className="sf-faq-indicator">{isOpen ? '−' : '+'}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="sf-faq-body">
+                      <p>{faq.a}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* 14. COMPREHENSIVE FOOTER & LEGAL LINKS */}
-      <StorefrontFooter />
+      <StorefrontFooter onRegisterComplaint={() => setComplaintDialogOpen(true)} />
 
       {/* 15. INSTANT BOOKING MODAL */}
       {bookingModalOpen && (
@@ -1148,6 +1358,9 @@ export function StorefrontPage() {
           </div>
         </div>
       )}
+
+      {/* REGISTER COMPLAINT DIALOG */}
+      <RegisterComplaintDialog open={complaintDialogOpen} onOpenChange={setComplaintDialogOpen} />
 
       {/* FLOATING BACK TO TOP BUTTON */}
       <ScrollToTopButton />

@@ -4,7 +4,6 @@ import {
   authenticate,
   allowRoles,
   branchScope,
-  customerDataScope,
 } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -18,10 +17,7 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = pagination(req.query);
-    const filter = {
-      ...branchScope(req, req.query.branchId),
-      ...customerDataScope(req),
-    };
+    const filter = branchScope(req, req.query.branchId);
     if (req.query.from || req.query.to)
       filter.scheduledAt = {
         ...(req.query.from ? { $gte: new Date(req.query.from) } : {}),
@@ -44,7 +40,7 @@ router.get(
 );
 router.patch(
   '/:id/assign',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.DISPATCHER),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const visit = await Visit.findOne({
       ...branchScope(req),
@@ -83,7 +79,7 @@ router.patch(
 );
 router.patch(
   '/:id/reschedule',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.DISPATCHER),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const visit = await Visit.findOne({
       ...branchScope(req),

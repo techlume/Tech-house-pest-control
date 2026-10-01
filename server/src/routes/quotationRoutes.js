@@ -5,7 +5,7 @@ import { Inspection } from '../models/Inspection.js';
 import { Company } from '../models/Company.js';
 import { Branch } from '../models/Branch.js';
 import { Invoice } from '../models/Invoice.js';
-import { authenticate, allowRoles, branchScope, customerDataScope } from '../middleware/auth.js';
+import { authenticate, allowRoles, branchScope } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { nextReference } from '../services/sequenceService.js';
@@ -13,11 +13,10 @@ import { pagination, writeBranch } from '../utils/scope.js';
 import { AppError } from '../utils/AppError.js';
 import { assertTransition } from '../utils/workflow.js';
 import { sendDocumentEmail } from '../services/documentEmailService.js';
-import { calculateInvoice } from '../utils/billing.js';
-import { notifyCustomer } from '../services/notificationService.js';
+import { assertValidLineImages, calculateInvoice } from '../utils/billing.js';
 
 const router = Router();
-const editors = [ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON];
+const editors = [ROLES.ADMIN];
 const transitions = {
   Draft: ['Approval Pending', 'Sent', 'Rejected'],
   'Approval Pending': ['Sent', 'Rejected'],
@@ -58,7 +57,7 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = pagination(req.query);
-    const filter = { ...branchScope(req, req.query.branchId), ...customerDataScope(req) };
+    const filter = { ...branchScope(req, req.query.branchId) };
     if (req.query.status) filter.status = req.query.status;
     const [items, total] = await Promise.all([
       Quotation.find(filter)
@@ -83,6 +82,7 @@ router.post(
       ...branchScope(req, branchId),
     });
     if (!customer) throw new AppError(404, 'Customer not found');
+    assertValidLineImages(req.body.lines);
     const scope = { companyId: req.auth.companyId, branchId };
     const quotation = await Quotation.create({
       ...req.body,
@@ -149,16 +149,14 @@ router.post(
 );
 router.post(
   '/:id/convert-to-invoice',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON, ROLES.ACCOUNTANT),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const quotation = await Quotation.findOne({
       ...branchScope(req),
       _id: req.params.id,
     });
     if (!quotation) throw new AppError(404, 'Quotation not found');
-    if (quotation.status !== 'Accepted')
-      throw new AppError(409, 'Only an accepted quotation can be converted to an invoice');
-    if (await Invoice.exists({ quotationId: quotation._id }))
+    if (quotation.status === 'Converted' || await Invoice.exists({ quotationId: quotation._id }))
       throw new AppError(409, 'This quotation was already converted to an invoice');
 
     const [customer, branch] = await Promise.all([
@@ -173,7 +171,10 @@ router.post(
       const discount = Math.min(Number(line.discount || 0), base);
       const netRate = Number(line.quantity) > 0 ? (base - discount) / Number(line.quantity) : Number(line.rate);
       return {
-        description: line.serviceName + (line.description ? ' — ' + line.description : ''),
+        description: line.serviceName,
+        subheading: line.subheading,
+        paragraph: line.description,
+        imageUrl: line.imageUrl,
         hsnSac: '998531',
         quantity: line.quantity,
         rate: netRate,
@@ -222,14 +223,44 @@ router.post(
     quotation.updatedBy = req.auth.userId;
     await quotation.save();
 
-    await notifyCustomer(invoice.customerId, {
-      type: 'INVOICE_ISSUED',
-      title: 'New invoice issued',
-      message: invoice.invoiceNo + ' - Rs. ' + invoice.grandTotal.toLocaleString('en-IN'),
-      link: '/billing',
-    });
-
     res.status(201).json({ invoice });
+  }),
+);
+router.patch(
+  '/:id',
+  allowRoles(...editors),
+  asyncHandler(async (req, res) => {
+    const quotation = await Quotation.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!quotation) throw new AppError(404, 'Quotation not found');
+    if (quotation.status === 'Converted')
+      throw new AppError(409, 'A converted quotation cannot be edited');
+    if (req.body.lines) {
+      assertValidLineImages(req.body.lines);
+      const computed = totals(req.body);
+      Object.assign(quotation, computed);
+    }
+    const fields = ['validUntil', 'gstTreatment', 'taxType', 'notes', 'terms', 'propertyId'];
+    Object.assign(quotation, pick(req.body, fields), { updatedBy: req.auth.userId });
+    await quotation.save();
+    res.json({ quotation });
+  }),
+);
+router.delete(
+  '/:id',
+  allowRoles(...editors),
+  asyncHandler(async (req, res) => {
+    const quotation = await Quotation.findOne({
+      ...branchScope(req),
+      _id: req.params.id,
+    });
+    if (!quotation) throw new AppError(404, 'Quotation not found');
+    if (quotation.status === 'Converted')
+      throw new AppError(409, 'A converted quotation cannot be deleted');
+    await quotation.deleteOne();
+    res.status(204).end();
   }),
 );
 router.patch(

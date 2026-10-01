@@ -5,13 +5,12 @@ import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
 import { Branch } from '../models/Branch.js';
-import { Customer } from '../models/Customer.js';
 import { assertStrongPassword } from '../utils/passwordPolicy.js';
 import { pick } from '../utils/pick.js';
 
 const router = Router();
 
-router.use(authenticate, allowRoles(ROLES.OWNER, ROLES.ADMIN));
+router.use(authenticate, allowRoles(ROLES.ADMIN));
 
 router.get(
   '/',
@@ -33,15 +32,7 @@ router.post(
     if (existing) {
       throw new AppError(409, `User with email "${data.email}" already exists`);
     }
-    if (
-      req.auth.role === ROLES.ADMIN &&
-      [ROLES.OWNER, ROLES.ADMIN].includes(data.role)
-    )
-      throw new AppError(
-        403,
-        'Only the owner can create owner or admin accounts',
-      );
-    if (data.role !== ROLES.OWNER) {
+    if (data.role !== ROLES.ADMIN) {
       const branch = await Branch.findOne({
         _id: data.branchId,
         companyId: req.auth.companyId,
@@ -50,20 +41,11 @@ router.post(
       if (!branch)
         throw new AppError(422, 'Select a valid active company branch');
     }
-    if (data.role === ROLES.CUSTOMER) {
-      const customer = await Customer.findOne({
-        _id: data.customerId,
-        companyId: req.auth.companyId,
-        branchId: data.branchId,
-      });
-      if (!customer)
-        throw new AppError(422, 'Select a customer from the chosen branch');
-    } else data.customerId = null;
 
     const user = await User.create({
       ...data,
       companyId: req.auth.companyId,
-      emailVerifiedAt: data.role === ROLES.CUSTOMER ? null : new Date(),
+      emailVerifiedAt: new Date(),
       passwordHash: await User.hashPassword(password),
     });
     res.status(201).json({ user });
@@ -76,11 +58,6 @@ const loadManageableUser = async (req) => {
     companyId: req.auth.companyId,
   }).select('+tokenVersion +passwordHash');
   if (!user) throw new AppError(404, 'User not found');
-  if (
-    req.auth.role === ROLES.ADMIN &&
-    [ROLES.OWNER, ROLES.ADMIN].includes(user.role)
-  )
-    throw new AppError(403, 'Only the owner can manage owner or admin accounts');
   return user;
 };
 
@@ -93,19 +70,14 @@ router.patch(
       'phone',
       'role',
       'branchId',
-      'customerId',
+      'canEdit',
       'active',
     ]);
     if (String(user._id) === String(req.auth.userId) && changes.active === false)
       throw new AppError(409, 'You cannot deactivate your own account');
-    if (
-      req.auth.role === ROLES.ADMIN &&
-      [ROLES.OWNER, ROLES.ADMIN].includes(changes.role)
-    )
-      throw new AppError(403, 'Only the owner can assign owner or admin roles');
     const role = changes.role || user.role;
-    const branchId = role === ROLES.OWNER ? null : changes.branchId || user.branchId;
-    if (role !== ROLES.OWNER) {
+    const branchId = role === ROLES.ADMIN ? null : changes.branchId || user.branchId;
+    if (role !== ROLES.ADMIN) {
       const branch = await Branch.findOne({
         _id: branchId,
         companyId: req.auth.companyId,
@@ -113,16 +85,6 @@ router.patch(
       });
       if (!branch) throw new AppError(422, 'Select a valid active company branch');
     }
-    if (role === ROLES.CUSTOMER) {
-      const customerId = changes.customerId || user.customerId;
-      const customer = await Customer.findOne({
-        _id: customerId,
-        companyId: req.auth.companyId,
-        branchId,
-      });
-      if (!customer) throw new AppError(422, 'Select a customer from the chosen branch');
-      changes.customerId = customer._id;
-    } else changes.customerId = null;
     changes.branchId = branchId;
     Object.assign(user, changes);
     await user.save();

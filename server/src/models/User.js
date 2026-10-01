@@ -15,12 +15,6 @@ const schema = new mongoose.Schema(
       default: null,
       index: true,
     },
-    customerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Customer',
-      default: null,
-      index: true,
-    },
     name: { type: String, required: true, trim: true },
     email: {
       type: String,
@@ -31,6 +25,7 @@ const schema = new mongoose.Schema(
     },
     phone: String,
     role: { type: String, enum: ROLE_VALUES, required: true },
+    canEdit: { type: Boolean, default: false },
     passwordHash: { type: String, required: true, select: false },
     active: { type: Boolean, default: true },
     tokenVersion: { type: Number, default: 0, select: false },

@@ -14,6 +14,11 @@ const siteConfigSchema = new mongoose.Schema(
       text: { type: String, default: 'FESTIVE OFFER: Get 30% INSTANT OFF on All Pest Control Bookings!' },
       tagline: { type: String, default: 'Auto-applied at checkout | 100% Odourless & Safe' },
     },
+    legalContent: {
+      privacyPolicy: { type: String, default: '' },
+      legalStatement: { type: String, default: '' },
+      cookiePolicy: { type: String, default: '' },
+    },
     contactInfo: {
       phone: { type: String, default: '+91 1800-212-2125' },
       email: { type: String, default: 'booking@techhousepest.com' },
@@ -45,6 +50,16 @@ const siteConfigSchema = new mongoose.Schema(
         tagline: { type: String, default: '' },
         basePriceMultiplier: { type: Number, default: 1.0 },
         includedFeatures: [{ type: String }],
+        premisesAllotments: [
+          {
+            id: { type: String, required: true },
+            label: { type: String, required: true },
+            defaultSqft: { type: Number, required: true },
+            basePrice: { type: Number, required: true },
+            amcPriceMultiplier: { type: Number, default: 2.2 },
+            description: { type: String, default: '' },
+          },
+        ],
       },
     ],
     heroBanners: [

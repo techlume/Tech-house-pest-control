@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @theme {
   --color-background: #ffffff;
@@ -24,5 +25,28 @@
   --color-border: #dce7e4;
   --color-input: #dce7e4;
   --color-ring: #159bd3;
+  --color-brand: #9bd51c;
+  --color-brand-foreground: #16302c;
+  --color-brand-dark: #087bad;
   --radius: 0.75rem;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
 }

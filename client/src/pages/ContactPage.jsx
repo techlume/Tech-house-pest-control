@@ -1,11 +1,39 @@
-import { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Phone, Mail, MapPin, Clock, CheckCircle2 } from 'lucide-react';
 import { http } from '../services/http';
 import { appAlert } from '../lib/dialog';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { StorefrontFooter } from '../components/StorefrontFooter';
+
+const DEFAULT_CONTACT = {
+  phone: '+91 1800-212-2125',
+  tollFree: '1800-212-2125',
+  email: 'booking@techhousepest.com',
+  address: 'Tech House Headquarters, Sector 14, Navi Mumbai, Maharashtra',
+  workingHours: 'Mon - Sun: 8:00 AM - 9:00 PM',
+};
+
+const infoCards = [
+  { icon: Phone, iconClass: 'text-primary', label: 'Toll-Free Hotline (24/7)', key: 'tollFree' },
+  { icon: Mail, iconClass: 'text-success', label: 'Customer Support Email', key: 'email' },
+  { icon: MapPin, iconClass: 'text-primary', label: 'Corporate Headquarters', key: 'address' },
+  { icon: Clock, iconClass: 'text-warning', label: 'Working Hours', key: 'workingHours' },
+];
 
 export function ContactPage() {
+  const [contact, setContact] = useState(DEFAULT_CONTACT);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    http.get('/site-config').then((res) => {
+      if (res.data?.data?.contactInfo) setContact(res.data.data.contactInfo);
+    }).catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -34,149 +62,130 @@ export function ContactPage() {
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      await appAlert('Failed to send message. Please call 1800-212-2125 directly.');
+      await appAlert('Failed to send message. Please call ' + (contact.tollFree || contact.phone) + ' directly.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="sf-wrapper">
+    <div className="min-h-screen bg-muted">
       {/* HEADER NAVBAR */}
-      <header className="sf-navbar">
-        <a href="/" className="sf-logo">
-          <img className="sf-logo-img" src="/tech-house-logo.png" alt="Tech House Pest Control" />
-          <div>
-            Tech House <span style={{ color: '#38bdf8' }}>Pest Control</span>
-          </div>
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
+        <a href="/" className="flex items-center gap-2 text-lg font-extrabold">
+          <img className="h-9 w-9 rounded-lg object-contain" src="/tech-house-logo.png" alt="Tech House Pest Control" />
+          <span>Tech House <span className="text-primary">Pest Control</span></span>
         </a>
 
-        <ul className="sf-nav-links">
-          <li><a href="/" className="sf-nav-link">Home</a></li>
-          <li><a href="/#services" className="sf-nav-link">Services</a></li>
-          <li><a href="/about" className="sf-nav-link">About Us</a></li>
-          <li><a href="/contact" className="sf-nav-link" style={{ color: '#159bd3', fontWeight: 700 }}>Contact</a></li>
+        <ul className="hidden items-center gap-6 text-sm font-semibold md:flex">
+          <li><a href="/" className="hover:text-primary">Home</a></li>
+          <li><a href="/#services" className="hover:text-primary">Services</a></li>
+          <li><a href="/about" className="hover:text-primary">About Us</a></li>
+          <li><a href="/contact" className="text-primary">Contact</a></li>
         </ul>
 
-        <div className="sf-header-actions">
-          <a href="tel:18002122125" className="sf-btn-call">
-            <Phone size={16} />
-            <span>1800-212-2125</span>
-          </a>
-          <a href="/login" className="sf-btn-login">
-            <span>Staff Login</span>
-          </a>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+            <a href={'tel:' + (contact.tollFree || contact.phone).replace(/\D/g, '')}>
+              <Phone size={15} /> {contact.tollFree || contact.phone}
+            </a>
+          </Button>
+          <Button asChild size="sm">
+            <a href="/login">Staff Login</a>
+          </Button>
         </div>
       </header>
 
       {/* HERO SECTION */}
-      <section className="sf-hero" style={{ paddingTop: '36px' }}>
+      <section className="mx-auto grid max-w-6xl gap-10 px-6 py-12 lg:grid-cols-2 lg:items-start">
         <div>
-          <h1 className="sf-hero-title">Get In Touch With Our Pest Experts</h1>
-          <p className="sf-hero-sub">
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Get In Touch With Our Pest Experts</h1>
+          <p className="mt-3 text-muted-foreground">
             Have a question about pest control or need an urgent home inspection? Our 24/7 service desk is ready to help you protect your premises.
           </p>
 
-          <div style={{ display: 'grid', gap: '16px', marginTop: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-              <Phone size={24} style={{ color: '#159bd3' }} />
-              <div>
-                <strong>Toll-Free Hotline (24/7)</strong>
-                <div style={{ color: '#063d59', fontWeight: 700 }}>1800-212-2125</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-              <Mail size={24} style={{ color: '#10b981' }} />
-              <div>
-                <strong>Customer Support Email</strong>
-                <div style={{ color: '#063d59', fontWeight: 700 }}>care@techhousepest.com</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
-              <MapPin size={24} style={{ color: '#38bdf8' }} />
-              <div>
-                <strong>Corporate Headquarters</strong>
-                <div style={{ color: '#063d59', fontSize: '13px' }}>Tech House Tower, Sector 14, Navi Mumbai, Maharashtra 400703</div>
-              </div>
-            </div>
+          <div className="mt-6 grid gap-4">
+            {infoCards.map(({ icon: Icon, iconClass, label, key }) => (
+              <Card key={key}>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Icon size={24} className={iconClass} />
+                  <div>
+                    <strong className="block text-sm font-bold">{label}</strong>
+                    <div className="text-sm font-semibold text-foreground">{contact[key]}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
 
         {/* INQUIRY FORM */}
-        <div className="sf-calc-card">
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '20px' }}>Request a Free Call-Back</h3>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="mb-4 text-xl font-bold">Request a Free Call-Back</h3>
 
-          {submitted ? (
-            <div style={{ textAlign: 'center', padding: '30px 0' }}>
-              <CheckCircle2 size={48} style={{ color: '#10b981', marginBottom: '16px' }} />
-              <h3>Message Sent Successfully!</h3>
-              <p style={{ color: 'var(--sf-text-muted)', fontSize: '14px' }}>
-                Thank you for contacting Tech House. Our local branch officer will call you back within 15 minutes.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="sf-form-group">
-                <label>Your Full Name *</label>
-                <input type="text" required className="sf-form-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="John Doe" />
+            {submitted ? (
+              <div className="py-10 text-center">
+                <CheckCircle2 size={48} className="mx-auto mb-4 text-success" />
+                <h3 className="text-lg font-bold">Message Sent Successfully!</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Thank you for contacting Tech House. Our local branch officer will call you back within 15 minutes.
+                </p>
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="sf-form-group">
-                  <label>Phone Number *</label>
-                  <input type="tel" required className="sf-form-input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="9876543210" />
+            ) : (
+              <form onSubmit={handleSubmit} className="grid gap-4">
+                <div className="grid gap-1.5">
+                  <Label>Your Full Name *</Label>
+                  <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="John Doe" />
                 </div>
-                <div className="sf-form-group">
-                  <label>Email Address</label>
-                  <input type="email" className="sf-form-input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="john@example.com" />
-                </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="sf-form-group">
-                  <label>City *</label>
-                  <input type="text" required className="sf-form-input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>Phone Number *</Label>
+                    <Input type="tel" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="9876543210" />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Email Address</Label>
+                    <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="john@example.com" />
+                  </div>
                 </div>
-                <div className="sf-form-group">
-                  <label>Interested Service</label>
-                  <select className="sf-form-input" value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })}>
-                    <option>Cockroach Control</option>
-                    <option>Termite Protection</option>
-                    <option>Rodent Control</option>
-                    <option>Mosquito Control</option>
-                    <option>Bed Bug Eradication</option>
-                    <option>Bird Netting & Spikes</option>
-                  </select>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label>City *</Label>
+                    <Input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Interested Service</Label>
+                    <Select value={form.service} onValueChange={(v) => setForm({ ...form, service: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Cockroach Control">Cockroach Control</SelectItem>
+                        <SelectItem value="Termite Protection">Termite Protection</SelectItem>
+                        <SelectItem value="Rodent Control">Rodent Control</SelectItem>
+                        <SelectItem value="Mosquito Control">Mosquito Control</SelectItem>
+                        <SelectItem value="Bed Bug Eradication">Bed Bug Eradication</SelectItem>
+                        <SelectItem value="Bird Netting & Spikes">Bird Netting & Spikes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
 
-              <div className="sf-form-group">
-                <label>How can we help you?</label>
-                <textarea rows="3" className="sf-form-input" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Describe your pest issue..." />
-              </div>
+                <div className="grid gap-1.5">
+                  <Label>How can we help you?</Label>
+                  <Textarea rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Describe your pest issue..." />
+                </div>
 
-              <button type="submit" disabled={submitting} className="sf-btn-book" style={{ marginTop: '12px' }}>
-                {submitting ? 'Sending Request...' : 'SEND CALL-BACK REQUEST'}
-              </button>
-            </form>
-          )}
-        </div>
+                <Button type="submit" disabled={submitting} className="mt-1">
+                  {submitting ? 'Sending Request...' : 'SEND CALL-BACK REQUEST'}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
-      {/* FOOTER */}
-      <footer>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontWeight: 800, fontSize: '18px' }}>Tech House Pest Control</span>
-            <p style={{ fontSize: '13px', color: '#92c4db', margin: '4px 0 0 0' }}>ISO 9001:2026 Certified Pest Eradication Services Across India.</p>
-          </div>
-          <div style={{ fontSize: '13px', color: '#92c4db' }}>
-            © 2026 Tech House Pest Control. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <StorefrontFooter />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { Badge } from './ui/badge';
 
 const SUCCESS = ['active', 'accepted', 'completed', 'paid', 'approved', 'resolved', 'verified'];
 const DESTRUCTIVE = ['overdue', 'rejected', 'cancelled', 'canceled', 'failed', 'expired', 'void'];
-const WARNING = ['draft', 'pending', 'scheduled', 'approval-pending', 'partially-paid', 'assigned', 'paused'];
+const WARNING = ['draft', 'pending', 'scheduled', 'approval-pending', 'partially-paid', 'assigned', 'paused', 'added', 'in-process'];
 
 function variantFor(value) {
   const key = String(value).toLowerCase().replaceAll(' ', '-').replaceAll('+', '');

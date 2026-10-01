@@ -1,6 +1,15 @@
+import { useEffect, useState } from 'react';
 import { Phone } from 'lucide-react';
+import { http } from '../services/http';
 
 export function LegalStatementPage() {
+  const [content, setContent] = useState('');
+  useEffect(() => {
+    http.get('/site-config').then((res) => {
+      const html = res.data?.data?.legalContent?.legalStatement;
+      if (html) setContent(html);
+    }).catch(() => {});
+  }, []);
   return (
     <div className="sf-wrapper">
       <header className="sf-navbar">
@@ -30,22 +39,26 @@ export function LegalStatementPage() {
         <h1 style={{ fontSize: '28px', color: '#063d59', marginBottom: '8px' }}>Legal Statement & Terms of Service</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>Last Updated: January 2026</p>
 
-        <section style={{ display: 'grid', gap: '20px', color: '#334155', lineHeight: '1.7' }}>
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>1. Intellectual Property & Branding</h3>
-            <p>All trademarks, brand logos, service calculator engines, and website design elements contained within Tech House Pest Control are protected by intellectual property laws. Reproduction without prior written authorization is strictly prohibited.</p>
-          </div>
+        {content ? (
+          <section style={{ color: '#334155', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: content }} />
+        ) : (
+          <section style={{ display: 'grid', gap: '20px', color: '#334155', lineHeight: '1.7' }}>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>1. Intellectual Property & Branding</h3>
+              <p>All trademarks, brand logos, service calculator engines, and website design elements contained within Tech House Pest Control are protected by intellectual property laws. Reproduction without prior written authorization is strictly prohibited.</p>
+            </div>
 
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>2. Service Guarantees & Contract Terms</h3>
-            <p>Pest eradication service guarantees, AMC warranties, and inspection commitments are governed by the terms specified in signed customer Jobbing and Contract Agreements issued at the time of service execution.</p>
-          </div>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>2. Service Guarantees & Contract Terms</h3>
+              <p>Pest eradication service guarantees, AMC warranties, and inspection commitments are governed by the terms specified in signed customer Jobbing and Contract Agreements issued at the time of service execution.</p>
+            </div>
 
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>3. Limitation of Liability</h3>
-            <p>Tech House Pest Control shall not be liable for pre-existing structural damage caused by undisclosed termite colonies, water leaks, or unauthorized alterations performed prior to service commencement.</p>
-          </div>
-        </section>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>3. Limitation of Liability</h3>
+              <p>Tech House Pest Control shall not be liable for pre-existing structural damage caused by undisclosed termite colonies, water leaks, or unauthorized alterations performed prior to service commencement.</p>
+            </div>
+          </section>
+        )}
       </div>
 
       <footer>

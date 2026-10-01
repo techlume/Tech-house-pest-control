@@ -23,6 +23,7 @@ import mediaRoutes from './mediaRoutes.js';
 import bulkRoutes from './bulkRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
 import siteConfigRoutes from './siteConfigRoutes.js';
+import couponRoutes from './couponRoutes.js';
 const router = Router();
 router.get('/health', (_req, res) =>
   res.json({ status: 'ok', timestamp: new Date().toISOString() }),
@@ -51,4 +52,5 @@ router.use('/media', mediaRoutes);
 router.use('/bulk', bulkRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/site-config', siteConfigRoutes);
+router.use('/coupons', couponRoutes);
 export default router;

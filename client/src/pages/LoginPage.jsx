@@ -12,7 +12,7 @@ export function LoginPage() {
   const [verification, setVerification] = useState(false);
   const [otp, setOtp] = useState('');
   const [message, setMessage] = useState('');
-  if (user) return <Navigate to='/' replace />;
+  if (user) return <Navigate to='/admin' replace />;
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);

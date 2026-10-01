@@ -23,17 +23,22 @@ import { ManagementPage } from './pages/ManagementPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { ProcurementPage } from './pages/ProcurementPage';
 import { BulkDataPage } from './pages/BulkDataPage';
+import { PayInvoicePage } from './pages/PayInvoicePage';
 
 // Public Service & Corporate Pages
+import { UniversalServicePage } from './pages/services/UniversalServicePage';
 import { CockroachServicePage } from './pages/services/CockroachServicePage';
 import { TermiteServicePage } from './pages/services/TermiteServicePage';
 import { RodentServicePage } from './pages/services/RodentServicePage';
 import { MosquitoServicePage } from './pages/services/MosquitoServicePage';
 import { BedBugServicePage } from './pages/services/BedBugServicePage';
 import { BirdControlServicePage } from './pages/services/BirdControlServicePage';
+import { AntServicePage } from './pages/services/AntServicePage';
+import { HouseflyServicePage } from './pages/services/HouseflyServicePage';
+import { SilverfishServicePage } from './pages/services/SilverfishServicePage';
+import { SpiderServicePage } from './pages/services/SpiderServicePage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
-import { BlogPage } from './pages/BlogPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { LegalStatementPage } from './pages/LegalStatementPage';
 import { CookiePolicyPage } from './pages/CookiePolicyPage';
@@ -47,19 +52,32 @@ export default function App() {
           {/* Main D2C Customer Storefront Routes */}
           <Route path="/" element={<StorefrontPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/pay/:token" element={<PayInvoicePage />} />
 
-          {/* Treatment & Service Pages */}
+          {/* Treatment & Service Pages (All 10 Categories + Aliases) */}
           <Route path="/services/cockroach" element={<CockroachServicePage />} />
+          <Route path="/services/cockroaches" element={<CockroachServicePage />} />
           <Route path="/services/termite" element={<TermiteServicePage />} />
+          <Route path="/services/termites" element={<TermiteServicePage />} />
           <Route path="/services/rodent" element={<RodentServicePage />} />
+          <Route path="/services/rodents" element={<RodentServicePage />} />
           <Route path="/services/mosquito" element={<MosquitoServicePage />} />
+          <Route path="/services/mosquitoes" element={<MosquitoServicePage />} />
           <Route path="/services/bed-bug" element={<BedBugServicePage />} />
+          <Route path="/services/bedbugs" element={<BedBugServicePage />} />
           <Route path="/services/bird-control" element={<BirdControlServicePage />} />
+          <Route path="/services/birds" element={<BirdControlServicePage />} />
+          <Route path="/services/ants" element={<AntServicePage />} />
+          <Route path="/services/ant" element={<AntServicePage />} />
+          <Route path="/services/housefly" element={<HouseflyServicePage />} />
+          <Route path="/services/silverfish" element={<SilverfishServicePage />} />
+          <Route path="/services/spider" element={<SpiderServicePage />} />
+          <Route path="/services/spiders" element={<SpiderServicePage />} />
+          <Route path="/services/:slug" element={<UniversalServicePage />} />
 
           {/* Corporate, Content & Policy Pages */}
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/blog" element={<BlogPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/legal-statement" element={<LegalStatementPage />} />
           <Route path="/cookie-policy" element={<CookiePolicyPage />} />
@@ -72,7 +90,7 @@ export default function App() {
               <Route path="/crm" element={<CrmPage />} />
               <Route path="/inspections" element={<InspectionsPage />} />
               <Route path="/quotations" element={<QuotationsPage />} />
-              <Route path="/contracts" element={<ContractsPage />} />
+              {/* <Route path="/contracts" element={<ContractsPage />} /> */}
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/jobs" element={<JobCardsPage />} />
               <Route path="/inventory" element={<InventoryPage />} />

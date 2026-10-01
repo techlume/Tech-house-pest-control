@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Download, Eye, FileOutput, IndianRupee, Plus, Printer, Trash2, UserPlus, WalletCards } from 'lucide-react';
+import { Check, Copy, Download, Eye, FileOutput, IndianRupee, Plus, Printer, Trash2, UserPlus, WalletCards } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
 import { StatusBadge } from '../components/StatusBadge';
@@ -27,6 +27,9 @@ const COMPANY_DEFAULTS = {
 };
 const blankInvoiceLine = () => ({
   description: '',
+  subheading: '',
+  paragraph: '',
+  imageUrl: '',
   hsnSac: '998531',
   quantity: 1,
   rate: '',
@@ -62,15 +65,6 @@ const receiptInitial = {
   method: 'UPI',
   referenceNo: '',
 };
-const loadRazorpayCheckout = () =>
-  new Promise((resolve, reject) => {
-    if (window.Razorpay) return resolve();
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = resolve;
-    script.onerror = () => reject(new Error('Could not load Razorpay Checkout'));
-    document.body.appendChild(script);
-  });
 export function BillingPage() {
   const invoices = useApiList('/billing/invoices'),
     receipts = useApiList('/billing/receipts'),
@@ -82,18 +76,34 @@ export function BillingPage() {
     [saving, setSaving] = useState(false),
     [error, setError] = useState(''),
     [document, setDocument] = useState(null),
+    [receiptDocument, setReceiptDocument] = useState(null),
     [invoice, setInvoice] = useState(invoiceInitial),
     [receipt, setReceipt] = useState(receiptInitial),
     [downloadingPdf, setDownloadingPdf] = useState(false),
-    [newCustomerOpen, setNewCustomerOpen] = useState(false);
+    [newCustomerOpen, setNewCustomerOpen] = useState(false),
+    [paymentLink, setPaymentLink] = useState(null),
+    [linkCopied, setLinkCopied] = useState(false);
   const docRef = useRef(null);
   const handleCustomerCreated = async (created) => {
     await customers.reload();
-    setInvoice((current) => ({ ...current, customerId: created._id }));
+    // The customer is permanently scoped to whichever branch it was created under —
+    // force the invoice form to match so the submit-time branch/customer lookup can't diverge.
+    setInvoice((current) => ({
+      ...current,
+      customerId: created._id,
+      branchId: created.branchId || current.branchId,
+    }));
   };
+  const canEdit = user?.role === 'ADMIN' ||
+    (user?.role === 'SUB_ADMIN' && user?.canEdit);
+  const isAuditor = user?.role === 'AUDITOR';
+  const [auditMonth, setAuditMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const visibleInvoices = isAuditor
+    ? invoices.data.filter((x) => new Date(x.issueDate).toISOString().slice(0, 7) === auditMonth)
+    : invoices.data;
   const totals = useMemo(
     () =>
-      invoices.data.reduce(
+      visibleInvoices.reduce(
         (a, x) => ({
           billed: a.billed + x.grandTotal,
           due: a.due + x.dueAmount,
@@ -101,9 +111,8 @@ export function BillingPage() {
         }),
         { billed: 0, due: 0, paid: 0 },
       ),
-    [invoices.data],
+    [visibleInvoices],
   );
-  const canEdit = ['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(user?.role);
   const updateInvoiceLine = (idx, key, value) =>
     setInvoice({
       ...invoice,
@@ -133,6 +142,9 @@ export function BillingPage() {
         terms: invoice.terms,
         lines: invoice.lines.map((line) => ({
           description: line.description,
+          subheading: line.subheading || undefined,
+          paragraph: line.paragraph || undefined,
+          imageUrl: line.imageUrl || undefined,
           hsnSac: line.hsnSac,
           quantity: Number(line.quantity),
           rate: Number(line.rate),
@@ -167,36 +179,25 @@ export function BillingPage() {
       setSaving(false);
     }
   };
-  const payInvoice = async (item) => {
+  const generatePaymentLink = async (item) => {
     setSaving(true);
     try {
-      await loadRazorpayCheckout();
-      const { data } = await http.post('/payments/invoices/' + item._id + '/order');
-      const checkout = new window.Razorpay({
-        key: data.keyId,
-        amount: data.amount,
-        currency: data.currency,
-        name: 'Tech House Pest Control',
-        description: 'Invoice ' + data.invoiceNo,
-        order_id: data.orderId,
-        prefill: { name: user?.name, email: user?.email },
-        handler: async (response) => {
-          try {
-            await http.post('/payments/verify', response);
-            await appAlert('Payment verified and receipt created.');
-            await Promise.all([invoices.reload(), receipts.reload()]);
-          } catch (x) {
-            await appAlert(x.response?.data?.error?.message || 'Payment verification failed');
-          } finally {
-            setSaving(false);
-          }
-        },
-        modal: { ondismiss: () => setSaving(false) },
-      });
-      checkout.open();
+      const { data } = await http.post('/billing/invoices/' + item._id + '/payment-link');
+      setPaymentLink({ invoiceNo: item.invoiceNo, url: `${window.location.origin}/pay/${data.token}` });
+      setLinkCopied(false);
     } catch (x) {
-      await appAlert(x.response?.data?.error?.message || x.message || 'Could not start payment');
+      await appAlert(x.response?.data?.error?.message || 'Could not generate payment link');
+    } finally {
       setSaving(false);
+    }
+  };
+  const copyPaymentLink = async () => {
+    try {
+      await navigator.clipboard.writeText(paymentLink.url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      await appAlert('Could not copy the link — please copy it manually.');
     }
   };
   const convertToQuotation = async (item) => {
@@ -274,12 +275,53 @@ export function BillingPage() {
         </Card>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="mt-5">
-        <TabsList>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="receipts">Receipts</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {isAuditor ? (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="mb-0 font-semibold">Select Audit Month:</Label>
+            <Input type="month" className="w-auto font-medium" value={auditMonth} onChange={(e) => setAuditMonth(e.target.value)} />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              const rows = [
+                ['Invoice No', 'Customer Name', 'Issue Date', 'Due Date', 'GST Treatment', 'Taxable Amount', 'Tax Total', 'Grand Total', 'Paid', 'Due'],
+                ...visibleInvoices.map((inv) => [
+                  inv.invoiceNo,
+                  inv.customerId?.name || '',
+                  new Date(inv.issueDate).toLocaleDateString('en-IN'),
+                  new Date(inv.dueDate).toLocaleDateString('en-IN'),
+                  inv.gstTreatment,
+                  inv.subtotal,
+                  inv.taxTotal,
+                  inv.grandTotal,
+                  inv.paidAmount,
+                  inv.dueAmount,
+                ]),
+              ];
+              const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `GST_Invoices_${auditMonth}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            <Download size={15} /> Export Month Invoices (CSV)
+          </Button>
+        </div>
+      ) : (
+        <Tabs value={tab} onValueChange={setTab} className="mt-5">
+          <TabsList>
+            <TabsTrigger value="invoices">Invoices</TabsTrigger>
+            <TabsTrigger value="receipts">Receipts</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
       <Card className="mt-4">
         <Table>
@@ -304,13 +346,14 @@ export function BillingPage() {
                   <TableHead>Reference</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Allocated to</TableHead>
+                  <TableHead>Actions</TableHead>
                 </>
               )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {tab === 'invoices'
-              ? invoices.data.map((x) => (
+              ? visibleInvoices.map((x) => (
                   <TableRow key={x._id}>
                     <TableCell>
                       <strong className="font-semibold">{x.invoiceNo}</strong>
@@ -332,8 +375,19 @@ export function BillingPage() {
                         <Button variant="ghost" size="icon" title="View invoice" onClick={() => setDocument(x)}>
                           <Eye size={17} />
                         </Button>
-                        {x.dueAmount > 0 && (
-                          <Button variant="ghost" size="icon" title="Pay online" disabled={saving} onClick={() => payInvoice(x)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Download invoice PDF"
+                          onClick={() => {
+                            setDocument(x);
+                            setTimeout(() => downloadPdf(x.invoiceNo + '.pdf'), 250);
+                          }}
+                        >
+                          <Download size={17} />
+                        </Button>
+                        {canEdit && x.dueAmount > 0 && (
+                          <Button variant="ghost" size="icon" title="Get shareable payment link" disabled={saving} onClick={() => generatePaymentLink(x)}>
                             <WalletCards size={17} />
                           </Button>
                         )}
@@ -372,11 +426,29 @@ export function BillingPage() {
                         </small>
                       ))}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" title="View receipt" onClick={() => setReceiptDocument(x)}>
+                          <Eye size={17} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Download receipt PDF"
+                          onClick={() => {
+                            setReceiptDocument(x);
+                            setTimeout(() => downloadPdf(x.receiptNo + '.pdf'), 250);
+                          }}
+                        >
+                          <Download size={17} />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
           </TableBody>
         </Table>
-        {((tab === 'invoices' && !invoices.data.length) || (tab === 'receipts' && !receipts.data.length)) && (
+        {((tab === 'invoices' && !visibleInvoices.length) || (tab === 'receipts' && !receipts.data.length)) && (
           <div className="p-10 text-center text-sm text-muted-foreground">
             {invoices.loading || receipts.loading ? 'Loading…' : `No ${tab} yet`}
           </div>
@@ -393,7 +465,7 @@ export function BillingPage() {
             setValue={setInvoice}
             customers={customers.data}
             branches={branches.data}
-            showBranch={['OWNER', 'ADMIN'].includes(user?.role)}
+            showBranch={user?.role === 'ADMIN'}
             error={error}
             saving={saving}
             submit={saveInvoice}
@@ -423,7 +495,7 @@ export function BillingPage() {
             setValue={setReceipt}
             customers={customers.data}
             branches={branches.data}
-            showBranch={['OWNER', 'ADMIN'].includes(user?.role)}
+            showBranch={user?.role === 'ADMIN'}
             error={error}
             saving={saving}
             submit={saveReceipt}
@@ -451,6 +523,50 @@ export function BillingPage() {
               <Download size={17} /> {downloadingPdf ? 'Generating…' : 'Download PDF'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(receiptDocument)} onOpenChange={(open) => !open && setReceiptDocument(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Receipt document</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[65vh] overflow-y-auto px-6">
+            {receiptDocument && (
+              <div ref={docRef}>
+                <ReceiptDocument receipt={receiptDocument} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer size={17} /> Print
+            </Button>
+            <Button disabled={downloadingPdf} onClick={() => downloadPdf(receiptDocument.receiptNo + '.pdf')}>
+              <Download size={17} /> {downloadingPdf ? 'Generating…' : 'Download PDF'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(paymentLink)} onOpenChange={(open) => !open && setPaymentLink(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Payment link for {paymentLink?.invoiceNo}</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <p className="mb-3 text-sm text-muted-foreground">
+              Share this link with the customer over WhatsApp, SMS or email. They can open it, see the amount due,
+              and pay online — no login required.
+            </p>
+            <div className="flex items-center gap-2">
+              <Input readOnly value={paymentLink?.url || ''} onFocus={(e) => e.target.select()} />
+              <Button type="button" onClick={copyPaymentLink} className="shrink-0">
+                {linkCopied ? <Check size={16} /> : <Copy size={16} />}
+                {linkCopied ? 'Copied' : 'Copy'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>
@@ -488,24 +604,42 @@ function InvoiceDocument({ invoice }) {
         <span>ORIGINAL FOR RECIPIENT</span>
       </div>
 
-      <div className='quote-doc-header'>
-        <div className='quote-doc-brand'>
-          <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
-          <div>
-            <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
-            {isGst && <p>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</p>}
-            <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
-            <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
-            <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
-          </div>
-        </div>
-        <div className='quote-doc-meta'>
-          <div><span>Invoice #:</span><strong>{invoice.invoiceNo}</strong></div>
-          <div><span>Invoice date:</span><strong>{new Date(invoice.issueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></div>
-          <div><span>Place of supply:</span><strong>{placeOfSupply.stateCode || '--'}-{placeOfSupply.state || customer.billingAddress?.state || 'Not specified'}</strong></div>
-          <div><span>Due date:</span><strong>{new Date(invoice.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></div>
-        </div>
-      </div>
+      <table className='quote-doc-headtable'>
+        <tbody>
+          <tr>
+            <td className='quote-doc-brand-cell' rowSpan={2}>
+              <div className='quote-doc-brand'>
+                <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
+                <div>
+                  <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
+                  {isGst && <p><strong>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</strong></p>}
+                  <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
+                  <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
+                  <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
+                </div>
+              </div>
+            </td>
+            <td className='quote-doc-meta-cell'>
+              <span>Invoice #:</span>
+              <strong>{invoice.invoiceNo}</strong>
+            </td>
+            <td className='quote-doc-meta-cell'>
+              <span>Invoice Date:</span>
+              <strong>{new Date(invoice.issueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+            </td>
+          </tr>
+          <tr>
+            <td className='quote-doc-meta-cell'>
+              <span>Place of Supply:</span>
+              <strong>{placeOfSupply.stateCode || '--'}-{placeOfSupply.state || customer.billingAddress?.state || 'Not specified'}</strong>
+            </td>
+            <td className='quote-doc-meta-cell'>
+              <span>Due Date:</span>
+              <strong>{new Date(invoice.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <section className='quote-doc-customer'>
         <span>Customer Details:</span>
@@ -528,7 +662,12 @@ function InvoiceDocument({ invoice }) {
             return (
               <tr key={line._id || idx}>
                 <td>{idx + 1}</td>
-                <td><strong>{line.description}</strong></td>
+                <td>
+                  <strong className='quote-doc-item-heading'>{line.description}</strong>
+                  {line.subheading && <div className='quote-doc-item-subheading'>{line.subheading}</div>}
+                  {line.paragraph && <p className='quote-doc-item-desc'>{line.paragraph}</p>}
+                  {line.imageUrl && <img src={line.imageUrl} alt='' className='quote-doc-item-image' />}
+                </td>
                 <td>{line.hsnSac || '—'}</td>
                 <td>₹{Number(line.rate).toLocaleString('en-IN')}</td>
                 <td>{line.quantity}</td>
@@ -541,8 +680,11 @@ function InvoiceDocument({ invoice }) {
         </tbody>
       </table>
 
-      <div className='quote-doc-summary-row'>
-        <span>Total Items / Qty : {invoice.lines.length} / {totalQty}</span>
+      <div className='quote-doc-qty-bar'>
+        Total Items / Qty : {invoice.lines.length} / {totalQty}
+      </div>
+
+      <div className='quote-doc-summary-box'>
         <div className='quote-doc-totals'>
           <span>Taxable Amount <strong>₹{Number(invoice.subtotal).toLocaleString('en-IN')}</strong></span>
           {showSplitTax ? (
@@ -554,59 +696,203 @@ function InvoiceDocument({ invoice }) {
             <span>{invoice.taxType} <strong>₹{Number(invoice.taxTotal).toLocaleString('en-IN')}</strong></span>
           ) : null}
           <span className='grand'>Total <strong>₹{Number(invoice.grandTotal).toLocaleString('en-IN')}</strong></span>
+          <div className='quote-doc-paid-split'>
+            <span>Paid: <strong>₹{Number(invoice.paidAmount).toLocaleString('en-IN')}</strong></span>
+            <span>Balance due: <strong>₹{Number(invoice.dueAmount).toLocaleString('en-IN')}</strong></span>
+          </div>
         </div>
       </div>
 
-      <div className='quote-doc-words'>Total amount (in words): {amountInWordsRupees(invoice.grandTotal)}</div>
-
-      <div className='quote-doc-payment'>
-        <span>Paid: <strong>₹{Number(invoice.paidAmount).toLocaleString('en-IN')}</strong></span>
-        <span>Balance due: <strong>₹{Number(invoice.dueAmount).toLocaleString('en-IN')}</strong></span>
+      <div className='quote-doc-words-bar'>
+        Total amount (in words): {amountInWordsRupees(invoice.grandTotal)}
       </div>
 
-      <div className='quote-doc-signature'>
-        <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
-        <span>Authorized Signatory</span>
-      </div>
+      <table className='quote-doc-sign-grid'>
+        <tbody>
+          <tr>
+            <td></td>
+            <td className='sign-cell'>
+              <div className='quote-doc-sign-content'>
+                <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
+                <span>Authorized Signatory</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {(invoice.notes || invoice.terms) && (
-        <section className='quote-doc-notes'>
-          <div>
-            <h4>Notes:</h4>
-            <p>{invoice.notes || '—'}</p>
-          </div>
-          <div>
-            <h4>Terms and Conditions:</h4>
-            <ul>
-              {(invoice.terms || '')
-                .split(/\r?\n/)
-                .map((t) => t.trim())
-                .filter(Boolean)
-                .map((t, i) => <li key={i}>{t}</li>)}
-            </ul>
-          </div>
-        </section>
+        <table className='quote-doc-notesrow'>
+          <tbody>
+            <tr>
+              <td>
+                <h4>Notes:</h4>
+                <p>{invoice.notes || '—'}</p>
+              </td>
+              <td>
+                <h4>Terms and Conditions:</h4>
+                {(invoice.terms || '')
+                  .split(/\r?\n/)
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+                  .map((t, i) => <p key={i}>{t}</p>)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       )}
 
-      <footer className='quote-doc-footer'>
-        <span>This is a computer generated document and requires no signature.</span>
-        <span>This is a regular GST invoice and not a government IRN e-invoice.</span>
+      <footer className='quote-doc-footer-bar'>
+        <span>Page 1 / 1 • {invoice.invoiceNo} • This is a computer generated document and requires no signature.</span>
+        <span>Powered By Tech House Pest Control</span>
       </footer>
     </article>
   );
+}
+
+function ReceiptDocument({ receipt }) {
+  const customer = receipt.customerId || {};
+  return (
+    <article className="quote-document">
+      <div className="quote-doc-kicker">
+        <span>PAYMENT RECEIPT</span>
+        <span>ORIGINAL FOR RECIPIENT</span>
+      </div>
+      <table className="quote-doc-headtable">
+        <tbody>
+          <tr>
+            <td className="quote-doc-brand-cell" rowSpan={2}>
+              <div className="quote-doc-brand">
+                <img src="/tech-house-logo.png" alt="Tech House Pest Control logo" className="quote-doc-logo" />
+                <div>
+                  <h2>{COMPANY_DEFAULTS.legalName}</h2>
+                  <p>{COMPANY_DEFAULTS.addressLine}</p>
+                  <p>Mobile: {COMPANY_DEFAULTS.phone}</p>
+                  <p>Email: {COMPANY_DEFAULTS.email}</p>
+                </div>
+              </div>
+            </td>
+            <td className="quote-doc-meta-cell">
+              <span>Receipt #:</span>
+              <strong>{receipt.receiptNo}</strong>
+            </td>
+            <td className="quote-doc-meta-cell">
+              <span>Received on:</span>
+              <strong>{new Date(receipt.receivedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+            </td>
+          </tr>
+          <tr>
+            <td className="quote-doc-meta-cell">
+              <span>Method:</span>
+              <strong>{receipt.method}</strong>
+            </td>
+            <td className="quote-doc-meta-cell">
+              <span>Reference:</span>
+              <strong>{receipt.referenceNo || '—'}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <section className="quote-doc-customer">
+        <span>Received From:</span>
+        <strong>{customer.name}</strong>
+      </section>
+      <table className="quote-doc-table">
+        <thead>
+          <tr><th>#</th><th>Allocated invoice</th><th>Amount</th></tr>
+        </thead>
+        <tbody>
+          {(receipt.allocations || []).map((allocation, idx) => (
+            <tr key={allocation._id || idx}>
+              <td>{idx + 1}</td>
+              <td>{allocation.invoiceId?.invoiceNo || 'Unallocated'}</td>
+              <td>₹{Number(allocation.amount).toLocaleString('en-IN')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="quote-doc-summary-box">
+        <div className="quote-doc-totals">
+          <span className="grand">Total received <strong>₹{Number(receipt.amount).toLocaleString('en-IN')}</strong></span>
+        </div>
+      </div>
+      <div className="quote-doc-words-bar">Amount received (in words): {amountInWordsRupees(receipt.amount)}</div>
+      <table className="quote-doc-sign-grid">
+        <tbody>
+          <tr>
+            <td></td>
+            <td className="sign-cell">
+              <div className="quote-doc-sign-content">
+                <span>For {COMPANY_DEFAULTS.legalName}</span>
+                <span>Authorized Signatory</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <footer className="quote-doc-footer-bar">
+        <span>Page 1 / 1 • {receipt.receiptNo} • This is a computer generated document and requires no signature.</span>
+        <span>Powered By Tech House Pest Control</span>
+      </footer>
+    </article>
+  );
+}
+
+const MAX_ITEM_IMAGE_BYTES = 1_200_000;
+
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function InvoiceLineRow({ line, gstTreatment, onChange, onRemove, canRemove }) {
   const base = Number(line.quantity || 0) * Number(line.rate || 0);
   const tax = gstTreatment === 'GST' ? (base * Number(line.taxRate || 0)) / 100 : 0;
   const total = base + tax;
+
+  const handleImage = async (file) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      await appAlert('Item images must be JPEG, PNG or WebP.');
+      return;
+    }
+    if (file.size > MAX_ITEM_IMAGE_BYTES) {
+      await appAlert('Item image is too large — please use an image under 1.2MB.');
+      return;
+    }
+    onChange('imageUrl', await readImageFile(file));
+  };
+
   return (
     <div className="rounded-xl border border-border p-4">
       <div className="flex items-start gap-2">
         <div className="grid flex-1 gap-3 sm:grid-cols-3">
           <div className="grid gap-1.5 sm:col-span-3">
-            <Label>Description</Label>
+            <Label>Heading (description)</Label>
             <Input required placeholder="e.g. Termite Protection - Initial Service" value={line.description} onChange={(e) => onChange('description', e.target.value)} />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-3">
+            <Label>Sub-heading (optional)</Label>
+            <Input placeholder="e.g. 2 Year Warranty Included" value={line.subheading || ''} onChange={(e) => onChange('subheading', e.target.value)} />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-3">
+            <Label>Paragraph (optional)</Label>
+            <Textarea rows="3" placeholder="Full scope of work shown on the printed invoice" value={line.paragraph || ''} onChange={(e) => onChange('paragraph', e.target.value)} />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-3">
+            <Label>Item image (optional)</Label>
+            {line.imageUrl ? (
+              <div className="flex items-center gap-3">
+                <img src={line.imageUrl} alt="" className="h-16 w-16 rounded-lg border border-border object-cover" />
+                <Button type="button" variant="outline" size="sm" onClick={() => onChange('imageUrl', '')}>Remove image</Button>
+              </div>
+            ) : (
+              <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => handleImage(e.target.files?.[0])} />
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label>HSN/SAC</Label>
@@ -653,7 +939,16 @@ function InvoiceForm({
   removeLine,
   onNewCustomer,
 }) {
-  const set = (k, v) => setValue({ ...value, [k]: v });
+  const set = (k, v) => {
+    // A customer only exists in one branch — always follow it, so the submit-time
+    // branch/customer lookup on the server can never diverge from what's picked here.
+    if (k === 'customerId') {
+      const picked = customers.find((x) => x._id === v);
+      setValue({ ...value, customerId: v, branchId: picked?.branchId || value.branchId });
+      return;
+    }
+    setValue({ ...value, [k]: v });
+  };
   return (
     <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={submit}>
       {error && <div className="form-error sm:col-span-2">{error}</div>}

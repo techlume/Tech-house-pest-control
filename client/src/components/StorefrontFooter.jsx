@@ -1,57 +1,75 @@
-export function StorefrontFooter() {
+const linkClass = 'text-slate-300 hover:text-white transition-colors';
+
+export function StorefrontFooter({ onRegisterComplaint }) {
   return (
-    <footer className="sf-reveal" style={{ background: '#041724', color: '#cbd5e1', padding: '60px 24px 30px 24px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-      <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '40px', marginBottom: '50px' }}>
+    <footer className="border-t border-white/10 bg-[#041724] px-6 pb-8 pt-14 text-slate-300">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div style={{ fontWeight: '800', fontSize: '20px', color: '#fff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/tech-house-logo.png" alt="Tech House Logo" style={{ height: '32px' }} />
+          <div className="mb-3 flex items-center gap-2.5 text-xl font-extrabold text-white">
+            <img src="/tech-house-logo.png" alt="Tech House Logo" className="h-8 w-8 object-contain" />
             Tech House Pest Control
           </div>
-          <p style={{ fontSize: '13px', lineHeight: '1.6', color: '#94a3b8' }}>
+          <p className="text-sm leading-relaxed text-slate-400">
             ISO 9001:2026 Certified science-led pest management platform. Delivering safe, odourless, and guaranteed pest eradication across residential and commercial properties.
           </p>
         </div>
 
         <div>
-          <h4 style={{ color: '#fff', fontSize: '16px', marginBottom: '16px' }}>Pest Eradication Suite</h4>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px', fontSize: '13.5px' }}>
-            <li><a href="/services/cockroach" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Cockroach Control</a></li>
-            <li><a href="/services/termite" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Termite Drill-Fill-Seal</a></li>
-            <li><a href="/services/rodent" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Rodent & Rat Control</a></li>
-            <li><a href="/services/mosquito" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Mosquito Fogging & Larvicide</a></li>
-            <li><a href="/services/bed-bug" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Bed Bug Eradication</a></li>
-            <li><a href="/services/bird-control" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Bird Netting & Spikes</a></li>
+          <h4 className="mb-4 text-base font-bold text-white">Pest Eradication Suite</h4>
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:text-sm">
+            <li><a href="/services/cockroach" className={linkClass}>Cockroach Control</a></li>
+            <li><a href="/services/termite" className={linkClass}>Termite Protection</a></li>
+            <li><a href="/services/rodent" className={linkClass}>Rodent & Rat Control</a></li>
+            <li><a href="/services/mosquito" className={linkClass}>Mosquito Defense</a></li>
+            <li><a href="/services/bed-bug" className={linkClass}>Bed Bug Removal</a></li>
+            <li><a href="/services/bird-control" className={linkClass}>Bird Netting & Spikes</a></li>
+            <li><a href="/services/ants" className={linkClass}>Ant Eradication</a></li>
+            <li><a href="/services/housefly" className={linkClass}>Housefly Control</a></li>
+            <li><a href="/services/silverfish" className={linkClass}>Silverfish Control</a></li>
+            <li><a href="/services/spider" className={linkClass}>Spider Web Removal</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 style={{ color: '#fff', fontSize: '16px', marginBottom: '16px' }}>Corporate & Insights</h4>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px', fontSize: '13.5px' }}>
-            <li><a href="/about" style={{ color: '#cbd5e1', textDecoration: 'none' }}>About Tech House</a></li>
-            <li><a href="/blog" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Knowledge Hub & Blog</a></li>
-            <li><a href="/contact" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Contact & Regional Hubs</a></li>
+          <h4 className="mb-4 text-base font-bold text-white">Corporate & Support</h4>
+          <ul className="grid gap-2 text-sm">
+            <li><a href="/about" className={linkClass}>About Tech House</a></li>
+            <li><a href="/contact" className={linkClass}>Contact & Regional Hubs</a></li>
+            {onRegisterComplaint ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={onRegisterComplaint}
+                  className={`${linkClass} text-left cursor-pointer bg-transparent border-0 p-0 text-amber-400 hover:text-amber-300 font-semibold`}
+                >
+                  Register Complaint / Grievance
+                </button>
+              </li>
+            ) : (
+              <li><a href="/contact#complaint" className={`${linkClass} text-amber-400 font-semibold`}>Register Complaint</a></li>
+            )}
           </ul>
         </div>
 
         <div>
-          <h4 style={{ color: '#fff', fontSize: '16px', marginBottom: '16px' }}>Legal & Policies</h4>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px', fontSize: '13.5px' }}>
-            <li><a href="/privacy-policy" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Privacy Policy</a></li>
-            <li><a href="/legal-statement" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Legal Statement & Terms</a></li>
-            <li><a href="/cookie-policy" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Cookie Policy</a></li>
+          <h4 className="mb-4 text-base font-bold text-white">Legal & Policies</h4>
+          <ul className="grid gap-2 text-sm">
+            <li><a href="/privacy-policy" className={linkClass}>Privacy Policy</a></li>
+            <li><a href="/legal-statement" className={linkClass}>Legal Statement & Terms</a></li>
+            <li><a href="/cookie-policy" className={linkClass}>Cookie Policy</a></li>
           </ul>
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '24px', maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', fontSize: '12.5px', color: '#64748b' }}>
+      <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-slate-500">
         <div>
           © {new Date().getFullYear()}{' '}
-          <a href="https://bmtechx.in" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>
+          <a href="https://bmtechx.in" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">
             Techlume Solutions (Freelancers)
           </a>
           . All rights reserved.
         </div>
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div className="flex gap-4">
           <span>| ISO 9001:2026 Certified Pest Eradication.</span>
           <span>•</span>
           <span>care@techhousepest.com</span>

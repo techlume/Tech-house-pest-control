@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, CircleOff, Mail, Map, MessageSquare, ReceiptText, WalletCards } from 'lucide-react';
 import { http } from '../services/http';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 const icons = { email: Mail, sms: MessageSquare, maps: Map, payment: WalletCards, gst: ReceiptText };
 
@@ -36,56 +41,78 @@ export function IntegrationsPage() {
 
   return (
     <>
-      <div className='page-heading'>
-        <span className='eyebrow'>External services</span>
-        <h2>Integrations</h2>
-        <p>Provider credentials are loaded only from server environment variables.</p>
+      <div>
+        <span className="eyebrow">External services</span>
+        <h2 className="text-2xl font-extrabold tracking-tight">Integrations</h2>
+        <p className="text-sm text-muted-foreground">Provider credentials are loaded only from server environment variables.</p>
       </div>
-      <div className='integration-grid'>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Object.entries(data || {}).map(([key, item]) => {
           const Icon = icons[key];
           return (
-            <article key={key}>
-              <Icon />
-              <div>
-                <h3>{key}</h3>
-                <p>{item.provider}</p>
-              </div>
-              <span className={item.configured ? 'connected' : 'not-connected'}>
-                {item.configured ? <CheckCircle2 /> : <CircleOff />}
-                {item.configured ? 'Configured' : 'Not configured'}
-              </span>
-            </article>
+            <Card key={key}>
+              <CardContent className="flex items-center gap-3 p-4">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent text-accent-foreground">
+                  <Icon size={18} />
+                </span>
+                <div className="flex-1">
+                  <h3 className="font-semibold capitalize">{key}</h3>
+                  <p className="text-sm text-muted-foreground">{item.provider}</p>
+                </div>
+                <Badge variant={item.configured ? 'success' : 'secondary'} className="gap-1">
+                  {item.configured ? <CheckCircle2 size={13} /> : <CircleOff size={13} />}
+                  {item.configured ? 'Configured' : 'Not configured'}
+                </Badge>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
-      <section className='panel integration-note'>
-        <h3>Activation requirements</h3>
-        <p>Choose providers and add their credentials to <code>server/.env</code>. Restart the API after changing integration settings. No keys are stored in frontend code or MongoDB.</p>
-      </section>
-      {user?.role === 'OWNER' && (
-        <section className='panel integration-note'>
-          <h3>Send test email</h3>
-          <p>Use this to confirm your SMTP settings before going live.</p>
-          <form className='form-grid' onSubmit={sendTestEmail}>
-            <label className='wide'>
-              <span>Recipient email</span>
-              <input type='email' value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder='owner@example.com' />
-            </label>
-            {note && <div className='form-success wide'>{note}</div>}
-            <div className='form-actions wide'>
-              <button className='primary-button' disabled={busy}>
-                {busy ? 'Sending...' : 'Send test email'}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-      {user?.role !== 'OWNER' && (
-        <section className='panel integration-note'>
-          <h3>Owner only</h3>
-          <p>Only the owner can trigger the SMTP test email action.</p>
-        </section>
+
+      <Card className="mt-5">
+        <CardHeader>
+          <CardTitle className="text-base">Activation requirements</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 text-sm text-muted-foreground">
+          Choose providers and add their credentials to <code>server/.env</code>. Restart the API after changing
+          integration settings. No keys are stored in frontend code or MongoDB.
+        </CardContent>
+      </Card>
+
+      {user?.role === 'ADMIN' ? (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-base">Send test email</CardTitle>
+            <p className="text-sm text-muted-foreground">Use this to confirm your SMTP settings before going live.</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <form className="grid grid-cols-1 gap-4" onSubmit={sendTestEmail}>
+              <div className="grid gap-1.5">
+                <Label>Recipient email</Label>
+                <Input
+                  type="email"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  placeholder="admin@example.com"
+                />
+              </div>
+              {note && <div className="form-success">{note}</div>}
+              <div className="flex justify-end">
+                <Button disabled={busy}>{busy ? 'Sending...' : 'Send test email'}</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-base">Admin only</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 text-sm text-muted-foreground">
+            Only an admin can trigger the SMTP test email action.
+          </CardContent>
+        </Card>
       )}
     </>
   );

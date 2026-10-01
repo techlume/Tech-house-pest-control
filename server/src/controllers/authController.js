@@ -10,10 +10,13 @@ import { audit } from '../services/auditService.js';
 // Cross-site deployments (client and API on different domains) need SameSite=None,
 // which browsers only honour on a Secure (HTTPS) cookie. Same-site/local dev keeps
 // the stricter Lax setting so it still works over plain http://localhost.
-const crossSite = env.NODE_ENV === 'production';
+// Keyed off COOKIE_SECURE (explicit operator intent) as well as NODE_ENV, since a
+// deployment that forgets to set NODE_ENV=production would otherwise silently fall
+// back to the broken Lax/cross-site combination.
+const crossSite = env.NODE_ENV === 'production' || env.cookieSecure;
 const cookie = {
   httpOnly: true,
-  secure: crossSite || env.cookieSecure,
+  secure: crossSite,
   sameSite: crossSite ? 'none' : 'lax',
   path: '/api/v1/auth',
   maxAge: 604800000,
@@ -24,9 +27,9 @@ const present = (u) => ({
   email: u.email,
   phone: u.phone,
   role: u.role,
+  canEdit: Boolean(u.canEdit),
   companyId: u.companyId,
   branchId: u.branchId,
-  customerId: u.customerId,
 });
 export async function login(req, res) {
   const { email, password } = req.validated.body;
@@ -37,8 +40,6 @@ export async function login(req, res) {
     throw new AppError(401, 'Invalid email or password', 'INVALID_CREDENTIALS');
   if (!user.active)
     throw new AppError(403, 'Account is inactive', 'ACCOUNT_INACTIVE');
-  if (user.role === 'CUSTOMER' && !user.emailVerifiedAt)
-    throw new AppError(403, 'Verify your email before signing in', 'EMAIL_NOT_VERIFIED');
   user.lastLoginAt = new Date();
   await user.save();
   res.cookie('refreshToken', createRefreshToken(user), cookie);
@@ -60,7 +61,7 @@ export async function refresh(req, res) {
   } catch {
     throw new AppError(401, 'Refresh session expired', 'INVALID_TOKEN');
   }
-  const user = await User.findById(payload.sub).select('+tokenVersion');
+  const user = await User.findById(payload.sub).select('+tokenVersion canEdit');
   if (!user?.active || user.tokenVersion !== payload.version)
     throw new AppError(401, 'Session revoked', 'SESSION_REVOKED');
   res.json({ accessToken: createAccessToken(user), user: present(user) });

@@ -1,6 +1,15 @@
+import { useEffect, useState } from 'react';
 import { Phone } from 'lucide-react';
+import { http } from '../services/http';
 
 export function CookiePolicyPage() {
+  const [content, setContent] = useState('');
+  useEffect(() => {
+    http.get('/site-config').then((res) => {
+      const html = res.data?.data?.legalContent?.cookiePolicy;
+      if (html) setContent(html);
+    }).catch(() => {});
+  }, []);
   return (
     <div className="sf-wrapper">
       <header className="sf-navbar">
@@ -30,22 +39,26 @@ export function CookiePolicyPage() {
         <h1 style={{ fontSize: '28px', color: '#063d59', marginBottom: '8px' }}>Cookie Policy</h1>
         <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>Last Updated: January 2026</p>
 
-        <section style={{ display: 'grid', gap: '20px', color: '#334155', lineHeight: '1.7' }}>
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>1. What Are Cookies?</h3>
-            <p>Cookies are small text files stored on your browser to enhance website navigation, remember rate calculator selections, and maintain secure staff authentication sessions.</p>
-          </div>
+        {content ? (
+          <section style={{ color: '#334155', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: content }} />
+        ) : (
+          <section style={{ display: 'grid', gap: '20px', color: '#334155', lineHeight: '1.7' }}>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>1. What Are Cookies?</h3>
+              <p>Cookies are small text files stored on your browser to enhance website navigation, remember rate calculator selections, and maintain secure staff authentication sessions.</p>
+            </div>
 
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>2. Types of Cookies We Use</h3>
-            <p><strong>Essential Cookies:</strong> Required for booking form submissions and authentication.<br /><strong>Analytical Cookies:</strong> Help us measure site traffic and optimize service calculator response times.</p>
-          </div>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>2. Types of Cookies We Use</h3>
+              <p><strong>Essential Cookies:</strong> Required for booking form submissions and authentication.<br /><strong>Analytical Cookies:</strong> Help us measure site traffic and optimize service calculator response times.</p>
+            </div>
 
-          <div>
-            <h3 style={{ color: '#063d59', marginBottom: '8px' }}>3. Managing Preferences</h3>
-            <p>You can choose to disable non-essential cookies via your browser settings. However, disabling essential cookies may impact instant rate calculation and booking features.</p>
-          </div>
-        </section>
+            <div>
+              <h3 style={{ color: '#063d59', marginBottom: '8px' }}>3. Managing Preferences</h3>
+              <p>You can choose to disable non-essential cookies via your browser settings. However, disabling essential cookies may impact instant rate calculation and booking features.</p>
+            </div>
+          </section>
+        )}
       </div>
 
       <footer>

@@ -14,6 +14,13 @@ import {
   Quote,
 } from 'lucide-react';
 import { http } from '../services/http';
+import { Button } from '../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Switch } from '../components/ui/switch';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
 
 const MAX_BANNER_BYTES = 1_800_000;
 const MAX_BANNERS = 8;
@@ -59,6 +66,7 @@ export function SiteSettingsPage() {
       { id: 'commercial', label: 'Commercial', defaultSqft: 3000, basePrice: 4999, amcPriceMultiplier: 2.4 },
     ],
     heroBanners: [],
+    legalContent: { privacyPolicy: '', legalStatement: '', cookiePolicy: '' },
     instantQuote: {
       discountFlat: 500,
       promoTitle: 'Here, One Stop Pest Solution',
@@ -114,31 +122,81 @@ export function SiteSettingsPage() {
     setTimeout(() => setToast({ type: '', msg: '' }), 4000);
   };
 
-  // Premise Allotment Handlers
+  // Premise Allotment Handlers (Supports Global Fallback and Service-Specific Allotments)
+  const [selectedServiceForAllotment, setSelectedServiceForAllotment] = useState('global');
+
+  const getActiveAllotments = () => {
+    if (selectedServiceForAllotment === 'global') {
+      return config.premisesAllotments || [];
+    }
+    const serv = (config.serviceCategories || []).find((s) => s.id === selectedServiceForAllotment);
+    if (!serv) return [];
+    if (!serv.premisesAllotments || serv.premisesAllotments.length === 0) {
+      return config.premisesAllotments || [];
+    }
+    return serv.premisesAllotments;
+  };
+
   const handleAllotmentChange = (index, field, val) => {
-    const updated = [...config.premisesAllotments];
-    updated[index] = { ...updated[index], [field]: val };
-    setConfig({ ...config, premisesAllotments: updated });
+    if (selectedServiceForAllotment === 'global') {
+      const updated = [...(config.premisesAllotments || [])];
+      updated[index] = { ...updated[index], [field]: val };
+      setConfig({ ...config, premisesAllotments: updated });
+    } else {
+      const servIndex = (config.serviceCategories || []).findIndex((s) => s.id === selectedServiceForAllotment);
+      if (servIndex === -1) return;
+      const updatedCategories = [...(config.serviceCategories || [])];
+      const targetServ = { ...updatedCategories[servIndex] };
+      const currentList = targetServ.premisesAllotments && targetServ.premisesAllotments.length > 0
+        ? [...targetServ.premisesAllotments]
+        : [...(config.premisesAllotments || [])];
+      currentList[index] = { ...currentList[index], [field]: val };
+      targetServ.premisesAllotments = currentList;
+      updatedCategories[servIndex] = targetServ;
+      setConfig({ ...config, serviceCategories: updatedCategories });
+    }
   };
 
   const handleAddAllotment = () => {
     const newId = `custom_${Date.now()}`;
-    setConfig({
-      ...config,
-      premisesAllotments: [
-        ...config.premisesAllotments,
-        { id: newId, label: 'New Allotment', defaultSqft: 1200, basePrice: 2200, amcPriceMultiplier: 2.2 },
-      ],
-    });
+    const newAllotment = { id: newId, label: 'New Allotment', defaultSqft: 1000, basePrice: 1999, amcPriceMultiplier: 2.2, description: '' };
+    if (selectedServiceForAllotment === 'global') {
+      setConfig({
+        ...config,
+        premisesAllotments: [...(config.premisesAllotments || []), newAllotment],
+      });
+    } else {
+      const servIndex = (config.serviceCategories || []).findIndex((s) => s.id === selectedServiceForAllotment);
+      if (servIndex === -1) return;
+      const updatedCategories = [...(config.serviceCategories || [])];
+      const targetServ = { ...updatedCategories[servIndex] };
+      const currentList = targetServ.premisesAllotments && targetServ.premisesAllotments.length > 0
+        ? [...targetServ.premisesAllotments]
+        : [...(config.premisesAllotments || [])];
+      targetServ.premisesAllotments = [...currentList, newAllotment];
+      updatedCategories[servIndex] = targetServ;
+      setConfig({ ...config, serviceCategories: updatedCategories });
+    }
   };
 
   const handleRemoveAllotment = (index) => {
-    if (config.premisesAllotments.length <= 1) {
+    const currentList = getActiveAllotments();
+    if (currentList.length <= 1) {
       showToast('error', 'Minimum 1 premise allotment is required.');
       return;
     }
-    const updated = config.premisesAllotments.filter((_, i) => i !== index);
-    setConfig({ ...config, premisesAllotments: updated });
+    if (selectedServiceForAllotment === 'global') {
+      const updated = currentList.filter((_, i) => i !== index);
+      setConfig({ ...config, premisesAllotments: updated });
+    } else {
+      const servIndex = (config.serviceCategories || []).findIndex((s) => s.id === selectedServiceForAllotment);
+      if (servIndex === -1) return;
+      const updatedCategories = [...(config.serviceCategories || [])];
+      const targetServ = { ...updatedCategories[servIndex] };
+      targetServ.premisesAllotments = currentList.filter((_, i) => i !== index);
+      updatedCategories[servIndex] = targetServ;
+      setConfig({ ...config, serviceCategories: updatedCategories });
+    }
   };
 
   // Hero Banner Handlers
@@ -251,79 +309,68 @@ export function SiteSettingsPage() {
 
   if (loading) {
     return (
-      <div className="page" style={{ textAlign: 'center', padding: '60px' }}>
-        <RefreshCw size={32} className="spin" style={{ color: 'var(--primary)' }} />
-        <p style={{ marginTop: '12px', color: 'var(--muted)' }}>Loading Storefront Site Configurations...</p>
+      <div className="page flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <RefreshCw size={32} className="animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading Storefront Site Configurations...</p>
       </div>
     );
   }
 
   return (
     <div className="page">
-      <div className="page-heading actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2>Site Changes & Storefront Management</h2>
-          <p>Configure dynamic pricing rates (1 BHK, 2 BHK, etc.), promotional coupon banners, and public contact info live on your homepage storefront.</p>
+          <h2 className="text-2xl font-extrabold tracking-tight">Site Changes & Storefront Management</h2>
+          <p className="text-sm text-muted-foreground">
+            Configure dynamic pricing rates (1 BHK, 2 BHK, etc.), promotional coupon banners, and public contact info live on your homepage storefront.
+          </p>
         </div>
 
-        <button className="primary-button" onClick={handleSave} disabled={saving}>
-          {saving ? <RefreshCw size={18} className="spin" /> : <Save size={18} />}
+        <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
+          {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
           <span>{saving ? 'Publishing Changes...' : 'Publish Live Site Changes'}</span>
-        </button>
+        </Button>
       </div>
 
       {toast.msg && (
         <div
-          style={{
-            padding: '12px 18px',
-            borderRadius: '12px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            fontWeight: '600',
-            fontSize: '14px',
-            background: toast.type === 'success' ? '#ecfdf5' : '#fef2f2',
-            color: toast.type === 'success' ? '#047857' : '#b91c1c',
-            border: `1px solid ${toast.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
-          }}
+          className={
+            'mb-5 flex items-center gap-2.5 rounded-xl border px-4.5 py-3 text-sm font-semibold ' +
+            (toast.type === 'success'
+              ? 'border-success/30 bg-success/10 text-success'
+              : 'border-destructive/30 bg-destructive/10 text-destructive')
+          }
         >
           {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{toast.msg}</span>
         </div>
       )}
 
-      <form onSubmit={handleSave}>
+      <form onSubmit={handleSave} className="flex flex-col gap-6">
         {/* 1. PROMOTIONAL BANNER & COUPON CODE MANAGER */}
-        <section className="panel" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <Tag size={20} style={{ color: 'var(--primary)' }} />
-            <h3 style={{ margin: 0 }}>Promotional Banner & Instant Coupon Settings</h3>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={config.promoBanner?.enabled}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      promoBanner: { ...config.promoBanner, enabled: e.target.checked },
-                    })
-                  }
-                />
-                <strong>Enable Top Promotional Banner on Homepage</strong>
-              </label>
+        <Card>
+          <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+            <Tag size={20} className="text-primary" />
+            <CardTitle>Promotional Banner & Instant Coupon Settings</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex items-center gap-3 sm:col-span-2">
+              <Switch
+                checked={Boolean(config.promoBanner?.enabled)}
+                onCheckedChange={(checked) =>
+                  setConfig({
+                    ...config,
+                    promoBanner: { ...config.promoBanner, enabled: checked },
+                  })
+                }
+              />
+              <Label className="text-sm font-semibold text-foreground">Enable Top Promotional Banner on Homepage</Label>
             </div>
 
-            <div className="form-group">
-              <label>Promo Coupon Code</label>
-              <input
+            <div className="grid gap-1.5">
+              <Label>Promo Coupon Code</Label>
+              <Input
                 type="text"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.promoBanner?.code || ''}
                 onChange={(e) =>
                   setConfig({
@@ -334,12 +381,10 @@ export function SiteSettingsPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label>Discount Percentage (%)</label>
-              <input
+            <div className="grid gap-1.5">
+              <Label>Discount Percentage (%)</Label>
+              <Input
                 type="number"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.promoBanner?.discountPercent || 0}
                 onChange={(e) =>
                   setConfig({
@@ -350,12 +395,10 @@ export function SiteSettingsPage() {
               />
             </div>
 
-            <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label>Banner Promotional Headline</label>
-              <input
+            <div className="grid gap-1.5 sm:col-span-2">
+              <Label>Banner Promotional Headline</Label>
+              <Input
                 type="text"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.promoBanner?.text || ''}
                 onChange={(e) =>
                   setConfig({
@@ -365,422 +408,404 @@ export function SiteSettingsPage() {
                 }
               />
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
         {/* 1B. HOMEPAGE HERO BANNER IMAGES & QUOTES */}
-        <section className="panel" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <ImageIcon size={20} style={{ color: 'var(--primary)' }} />
-              <h3 style={{ margin: 0 }}>Homepage Hero Banner Images &amp; Quotes</h3>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2.5">
+              <ImageIcon size={20} className="text-primary" />
+              <CardTitle>Homepage Hero Banner Images &amp; Quotes</CardTitle>
             </div>
-            <button
+            <Button
               type="button"
-              className="location-actions button"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+              variant="outline"
+              size="sm"
               onClick={handleAddBanner}
               disabled={(config.heroBanners || []).length >= MAX_BANNERS}
             >
               <Plus size={16} />
               <span>Add Banner</span>
-            </button>
-          </div>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-[13px] text-muted-foreground">
+              Upload photos (JPEG/PNG/WebP, under 1.8MB each) with an optional overlay quote for the homepage hero. When
+              more than one banner is enabled they rotate automatically; leave empty to keep the default background.
+            </p>
 
-          <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '16px' }}>
-            Upload photos (JPEG/PNG/WebP, under 1.8MB each) with an optional overlay quote for the homepage hero. When
-            more than one banner is enabled they rotate automatically; leave empty to keep the default background.
-          </p>
-
-          {bannerError && (
-            <div style={{ padding: '10px 14px', borderRadius: '10px', marginBottom: '14px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', fontSize: '13px' }}>
-              {bannerError}
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gap: '16px' }}>
-            {(config.heroBanners || []).map((banner, idx) => (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '16px', border: '1px solid var(--line)', borderRadius: '14px', padding: '14px' }}>
-                <div>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '110px',
-                      borderRadius: '10px',
-                      background: banner.imageUrl ? `url(${banner.imageUrl}) center/cover no-repeat` : '#f1f5f9',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--muted)',
-                      marginBottom: '8px',
-                      border: '1px dashed var(--line)',
-                    }}
-                  >
-                    {!banner.imageUrl && <ImageIcon size={22} />}
-                  </div>
-                  <label className="location-actions button" style={{ display: 'flex', justifyContent: 'center', cursor: 'pointer', fontSize: '12px', padding: '6px' }}>
-                    {banner.imageUrl ? 'Replace' : 'Upload'}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleBannerImage(idx, e.target.files?.[0])}
-                    />
-                  </label>
-                </div>
-
-                <div style={{ display: 'grid', gap: '10px' }}>
-                  <div className="form-group">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Quote size={13} /> Overlay quote
-                    </label>
-                    <input
-                      type="text"
-                      className="input-wrap"
-                      style={{ width: '100%', padding: '10px 14px' }}
-                      placeholder='e.g. "A pest-free home is a promise, not a privilege."'
-                      value={banner.quote}
-                      onChange={(e) => handleBannerField(idx, 'quote', e.target.value)}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                    <div className="form-group" style={{ flex: 1 }}>
-                      <label>Quote attribution (optional)</label>
-                      <input
-                        type="text"
-                        className="input-wrap"
-                        style={{ width: '100%', padding: '10px 14px' }}
-                        placeholder="— The Tech House Promise"
-                        value={banner.quoteAuthor}
-                        onChange={(e) => handleBannerField(idx, 'quoteAuthor', e.target.value)}
-                      />
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', paddingBottom: '10px' }}>
-                      <input
-                        type="checkbox"
-                        checked={banner.enabled}
-                        onChange={(e) => handleBannerField(idx, 'enabled', e.target.checked)}
-                      />
-                      Live
-                    </label>
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', paddingBottom: '10px' }}
-                      onClick={() => handleRemoveBanner(idx)}
-                      title="Remove banner"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {!(config.heroBanners || []).length && (
-              <div style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)', fontSize: '13px' }}>
-                No banners yet — the homepage will use its default background until you add one.
+            {bannerError && (
+              <div className="mb-3.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-[13px] text-destructive">
+                {bannerError}
               </div>
             )}
-          </div>
-        </section>
+
+            <div className="grid gap-4">
+              {(config.heroBanners || []).map((banner, idx) => (
+                <div key={idx} className="grid grid-cols-1 gap-4 rounded-2xl border border-border p-3.5 sm:grid-cols-[160px_1fr]">
+                  <div>
+                    <div className="mb-2 flex h-[110px] w-full items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-border bg-muted text-muted-foreground">
+                      {banner.imageUrl ? (
+                        <img src={banner.imageUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <ImageIcon size={22} />
+                      )}
+                    </div>
+                    <Label
+                      htmlFor={`banner-upload-${idx}`}
+                      className="flex cursor-pointer items-center justify-center rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-semibold shadow-sm hover:bg-muted"
+                    >
+                      {banner.imageUrl ? 'Replace' : 'Upload'}
+                    </Label>
+                    <input
+                      id={`banner-upload-${idx}`}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => handleBannerImage(idx, e.target.files?.[0])}
+                    />
+                  </div>
+
+                  <div className="grid gap-2.5">
+                    <div className="grid gap-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Quote size={13} /> Overlay quote
+                      </Label>
+                      <Input
+                        type="text"
+                        placeholder='e.g. "A pest-free home is a promise, not a privilege."'
+                        value={banner.quote}
+                        onChange={(e) => handleBannerField(idx, 'quote', e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end gap-2.5">
+                      <div className="grid flex-1 gap-1.5">
+                        <Label>Quote attribution (optional)</Label>
+                        <Input
+                          type="text"
+                          placeholder="— The Tech House Promise"
+                          value={banner.quoteAuthor}
+                          onChange={(e) => handleBannerField(idx, 'quoteAuthor', e.target.value)}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pb-2.5">
+                        <Switch
+                          checked={Boolean(banner.enabled)}
+                          onCheckedChange={(checked) => handleBannerField(idx, 'enabled', checked)}
+                        />
+                        <Label className="text-sm">Live</Label>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        title="Remove banner"
+                        onClick={() => handleRemoveBanner(idx)}
+                      >
+                        <Trash2 size={18} className="text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!(config.heroBanners || []).length && (
+                <div className="rounded-2xl border border-dashed border-border p-6 text-center text-[13px] text-muted-foreground">
+                  No banners yet — the homepage will use its default background until you add one.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* 1C. HOMEPAGE INSTANT QUOTE WIDGET */}
-        <section className="panel" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <Sliders size={20} style={{ color: 'var(--primary)' }} />
-            <h3 style={{ margin: 0 }}>Homepage "Get Your Instant Quote" Widget</h3>
-          </div>
-          <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '16px' }}>
-            Controls the service list, property-size brackets and pricing shown in the instant quote card on the
-            homepage hero. Prices are per service at its base sqft bracket, scaled by the sqft multiplier and the
-            selected service type multiplier.
-          </p>
+        <Card>
+          <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+            <Sliders size={20} className="text-primary" />
+            <CardTitle>Homepage "Get Your Instant Quote" Widget</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-[13px] text-muted-foreground">
+              Controls the service list, property-size brackets and pricing shown in the instant quote card on the
+              homepage hero. Prices are per service at its base sqft bracket, scaled by the sqft multiplier and the
+              selected service type multiplier.
+            </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-            <div className="form-group">
-              <label>Flat Discount (₹)</label>
-              <input
-                type="number"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
-                value={instantQuote.discountFlat}
-                onChange={(e) => setInstantQuote({ discountFlat: Number(e.target.value) })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Promo Strip Title</label>
-              <input
-                type="text"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
-                value={instantQuote.promoTitle}
-                onChange={(e) => setInstantQuote({ promoTitle: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Promo Strip Subtitle</label>
-              <input
-                type="text"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
-                value={instantQuote.promoSubtitle}
-                onChange={(e) => setInstantQuote({ promoSubtitle: e.target.value })}
-              />
-            </div>
-          </div>
-
-          {/* Sqft Brackets */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '13.5px' }}>Property Size Brackets</strong>
-            <button
-              type="button"
-              className="location-actions button"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-              onClick={handleAddBracket}
-            >
-              <Plus size={16} />
-              <span>Add Range</span>
-            </button>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--line)', textTransform: 'uppercase', fontSize: '12px', color: 'var(--muted)' }}>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Label</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Price Multiplier</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Call For Quote Only</th>
-                <th style={{ padding: '10px', textAlign: 'center' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {instantQuote.sqftBrackets.map((b, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid var(--line)' }}>
-                  <td style={{ padding: '10px' }}>
-                    <input
-                      type="text"
-                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)', width: '180px' }}
-                      value={b.label}
-                      onChange={(e) => handleBracketChange(idx, 'label', e.target.value)}
-                    />
-                  </td>
-                  <td style={{ padding: '10px' }}>
-                    <input
-                      type="number"
-                      step="0.01"
-                      disabled={b.callOnly}
-                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)', width: '100px' }}
-                      value={b.multiplier ?? ''}
-                      onChange={(e) => handleBracketChange(idx, 'multiplier', Number(e.target.value))}
-                    />
-                  </td>
-                  <td style={{ padding: '10px' }}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(b.callOnly)}
-                      onChange={(e) => handleBracketChange(idx, 'callOnly', e.target.checked)}
-                    />
-                  </td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                      onClick={() => handleRemoveBracket(idx)}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Services & Types */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <strong style={{ fontSize: '13.5px' }}>Services</strong>
-            <button
-              type="button"
-              className="location-actions button"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-              onClick={handleAddService}
-            >
-              <Plus size={16} />
-              <span>Add Service</span>
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gap: '14px' }}>
-            {instantQuote.services.map((s, sIdx) => (
-              <div key={sIdx} style={{ border: '1px solid var(--line)', borderRadius: '12px', padding: '14px' }}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '12px' }}>
-                  <div className="form-group" style={{ flex: 2 }}>
-                    <label>Service Name</label>
-                    <input
-                      type="text"
-                      className="input-wrap"
-                      style={{ width: '100%', padding: '8px 12px' }}
-                      value={s.label}
-                      onChange={(e) => handleServiceMetaChange(sIdx, 'label', e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Base Price at first bracket (₹)</label>
-                    <input
-                      type="number"
-                      className="input-wrap"
-                      style={{ width: '100%', padding: '8px 12px' }}
-                      value={s.basePrice}
-                      onChange={(e) => handleServiceMetaChange(sIdx, 'basePrice', Number(e.target.value))}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', paddingBottom: '8px' }}
-                    onClick={() => handleRemoveService(sIdx)}
-                    title="Remove service"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 700 }}>Service Types</span>
-                  <button
-                    type="button"
-                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12.5px', fontWeight: 700 }}
-                    onClick={() => handleAddType(sIdx)}
-                  >
-                    <Plus size={14} /> Add Type
-                  </button>
-                </div>
-
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {s.types.map((t, tIdx) => (
-                    <div key={tIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        placeholder="Type label (e.g. Single Service)"
-                        style={{ flex: 2, padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)' }}
-                        value={t.label}
-                        onChange={(e) => handleTypeChange(sIdx, tIdx, 'label', e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        step="0.1"
-                        title="Price multiplier"
-                        style={{ width: '90px', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)' }}
-                        value={t.multiplier}
-                        onChange={(e) => handleTypeChange(sIdx, tIdx, 'multiplier', Number(e.target.value))}
-                      />
-                      <button
-                        type="button"
-                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                        onClick={() => handleRemoveType(sIdx, tIdx)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid gap-1.5">
+                <Label>Flat Discount (₹)</Label>
+                <Input
+                  type="number"
+                  value={instantQuote.discountFlat}
+                  onChange={(e) => setInstantQuote({ discountFlat: Number(e.target.value) })}
+                />
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="grid gap-1.5">
+                <Label>Promo Strip Title</Label>
+                <Input
+                  type="text"
+                  value={instantQuote.promoTitle}
+                  onChange={(e) => setInstantQuote({ promoTitle: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Promo Strip Subtitle</Label>
+                <Input
+                  type="text"
+                  value={instantQuote.promoSubtitle}
+                  onChange={(e) => setInstantQuote({ promoSubtitle: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Sqft Brackets */}
+            <div className="mb-2.5 flex items-center justify-between">
+              <strong className="text-[13.5px]">Property Size Brackets</strong>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddBracket}>
+                <Plus size={16} />
+                <span>Add Range</span>
+              </Button>
+            </div>
+            <Card className="mb-5">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Label</TableHead>
+                    <TableHead>Price Multiplier</TableHead>
+                    <TableHead>Call For Quote Only</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {instantQuote.sqftBrackets.map((b, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>
+                        <Input
+                          type="text"
+                          className="w-44"
+                          value={b.label}
+                          onChange={(e) => handleBracketChange(idx, 'label', e.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          disabled={b.callOnly}
+                          className="w-24"
+                          value={b.multiplier ?? ''}
+                          onChange={(e) => handleBracketChange(idx, 'multiplier', Number(e.target.value))}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={Boolean(b.callOnly)}
+                          onCheckedChange={(checked) => handleBracketChange(idx, 'callOnly', checked)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveBracket(idx)}>
+                          <Trash2 size={18} className="text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+
+            {/* Services & Types */}
+            <div className="mb-2.5 flex items-center justify-between">
+              <strong className="text-[13.5px]">Services</strong>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddService}>
+                <Plus size={16} />
+                <span>Add Service</span>
+              </Button>
+            </div>
+
+            <div className="grid gap-3.5">
+              {instantQuote.services.map((s, sIdx) => (
+                <div key={sIdx} className="rounded-xl border border-border p-3.5">
+                  <div className="mb-3 flex items-end gap-2.5">
+                    <div className="grid flex-[2] gap-1.5">
+                      <Label>Service Name</Label>
+                      <Input
+                        type="text"
+                        value={s.label}
+                        onChange={(e) => handleServiceMetaChange(sIdx, 'label', e.target.value)}
+                      />
+                    </div>
+                    <div className="grid flex-1 gap-1.5">
+                      <Label>Base Price at first bracket (₹)</Label>
+                      <Input
+                        type="number"
+                        value={s.basePrice}
+                        onChange={(e) => handleServiceMetaChange(sIdx, 'basePrice', Number(e.target.value))}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      title="Remove service"
+                      onClick={() => handleRemoveService(sIdx)}
+                    >
+                      <Trash2 size={18} className="text-destructive" />
+                    </Button>
+                  </div>
+
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase text-muted-foreground">Service Types</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary"
+                      onClick={() => handleAddType(sIdx)}
+                    >
+                      <Plus size={14} /> Add Type
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-2">
+                    {s.types.map((t, tIdx) => (
+                      <div key={tIdx} className="flex items-center gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Type label (e.g. Single Service)"
+                          className="flex-[2]"
+                          value={t.label}
+                          onChange={(e) => handleTypeChange(sIdx, tIdx, 'label', e.target.value)}
+                        />
+                        <Input
+                          type="number"
+                          step="0.1"
+                          title="Price multiplier"
+                          className="w-24"
+                          value={t.multiplier}
+                          onChange={(e) => handleTypeChange(sIdx, tIdx, 'multiplier', Number(e.target.value))}
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveType(sIdx, tIdx)}>
+                          <Trash2 size={16} className="text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* 2. DYNAMIC PREMISES ALLOTMENT & PRICING TABLE */}
-        <section className="panel" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Globe size={20} style={{ color: 'var(--primary)' }} />
-              <h3 style={{ margin: 0 }}>Premises Allotments & Base Pricing Rates</h3>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-2.5">
+              <Globe size={20} className="text-primary" />
+              <CardTitle>Premises Allotments &amp; Base Pricing Rates</CardTitle>
             </div>
-            <button
-              type="button"
-              className="location-actions button"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-              onClick={handleAddAllotment}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={handleAddAllotment}>
               <Plus size={16} />
               <span>Add Allotment Option</span>
-            </button>
-          </div>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {/* Service Filter / Target Selector */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="allotment-service-select" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Target Service:
+                </Label>
+                <select
+                  id="allotment-service-select"
+                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm font-semibold shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  value={selectedServiceForAllotment}
+                  onChange={(e) => setSelectedServiceForAllotment(e.target.value)}
+                >
+                  <option value="global">🌐 Global Fallback Allotments (Standard BHKs)</option>
+                  {(config.serviceCategories || []).map((serv) => (
+                    <option key={serv.id} value={serv.id}>
+                      {serv.name} ({serv.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {selectedServiceForAllotment === 'global'
+                  ? 'Configuring standard fallback premises (1 RK, 1 BHK, 2 BHK, etc.)'
+                  : `Configuring dynamic premises specifically for ${config.serviceCategories?.find((s) => s.id === selectedServiceForAllotment)?.name || selectedServiceForAllotment}`}
+              </span>
+            </div>
 
-          <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '16px' }}>
-            Configure base prices for 1 RK, 1 BHK, 2 BHK, 3 BHK, 4 BHK, 5 BHK, and Commercial properties. These prices directly feed the storefront rate engine.
-          </p>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--line)', textTransform: 'uppercase', fontSize: '12px', color: 'var(--muted)' }}>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Allotment Label</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Default Sqft</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Base Rate (₹)</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>AMC Multiplier</th>
-                <th style={{ padding: '10px', textAlign: 'center' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {config.premisesAllotments?.map((item, idx) => (
-                <tr key={item.id || idx} style={{ borderBottom: '1px solid var(--line)' }}>
-                  <td style={{ padding: '10px' }}>
-                    <input
-                      type="text"
-                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)', width: '120px' }}
-                      value={item.label}
-                      onChange={(e) => handleAllotmentChange(idx, 'label', e.target.value)}
-                    />
-                  </td>
-                  <td style={{ padding: '10px' }}>
-                    <input
-                      type="number"
-                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)', width: '100px' }}
-                      value={item.defaultSqft}
-                      onChange={(e) => handleAllotmentChange(idx, 'defaultSqft', Number(e.target.value))}
-                    />
-                  </td>
-                  <td style={{ padding: '10px' }}>
-                    <input
-                      type="number"
-                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)', width: '110px' }}
-                      value={item.basePrice}
-                      onChange={(e) => handleAllotmentChange(idx, 'basePrice', Number(e.target.value))}
-                    />
-                  </td>
-                  <td style={{ padding: '10px' }}>
-                    <input
-                      type="number"
-                      step="0.1"
-                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--line)', width: '90px' }}
-                      value={item.amcPriceMultiplier}
-                      onChange={(e) => handleAllotmentChange(idx, 'amcPriceMultiplier', Number(e.target.value))}
-                    />
-                  </td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                      onClick={() => handleRemoveAllotment(idx)}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Allotment Label</TableHead>
+                  <TableHead>Default Sqft</TableHead>
+                  <TableHead>Base Rate (₹)</TableHead>
+                  <TableHead>AMC Multiplier</TableHead>
+                  <TableHead className="text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {getActiveAllotments().map((item, idx) => (
+                  <TableRow key={item.id || idx}>
+                    <TableCell>
+                      <Input
+                        type="text"
+                        className="w-36"
+                        value={item.label}
+                        onChange={(e) => handleAllotmentChange(idx, 'label', e.target.value)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        className="w-24"
+                        value={item.defaultSqft}
+                        onChange={(e) => handleAllotmentChange(idx, 'defaultSqft', Number(e.target.value))}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        className="w-28"
+                        value={item.basePrice}
+                        onChange={(e) => handleAllotmentChange(idx, 'basePrice', Number(e.target.value))}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        className="w-24"
+                        value={item.amcPriceMultiplier}
+                        onChange={(e) => handleAllotmentChange(idx, 'amcPriceMultiplier', Number(e.target.value))}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveAllotment(idx)}>
+                        <Trash2 size={18} className="text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
         {/* 3. PRICING RULES & GST CONFIGURATION */}
-        <section className="panel" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <Sliders size={20} style={{ color: 'var(--primary)' }} />
-            <h3 style={{ margin: 0 }}>Calculation Rules & Tax Configuration</h3>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-            <div className="form-group">
-              <label>Minimum Area Sqft</label>
-              <input
+        <Card>
+          <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+            <Sliders size={20} className="text-primary" />
+            <CardTitle>Calculation Rules & Tax Configuration</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-1.5">
+              <Label>Minimum Area Sqft</Label>
+              <Input
                 type="number"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.pricingRules?.minSqft || 200}
                 onChange={(e) =>
                   setConfig({
@@ -791,13 +816,11 @@ export function SiteSettingsPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label>Extra Sqft Cost Rate (₹/sqft)</label>
-              <input
+            <div className="grid gap-1.5">
+              <Label>Extra Sqft Cost Rate (₹/sqft)</Label>
+              <Input
                 type="number"
                 step="0.1"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.pricingRules?.extraPricePerSqft || 1.5}
                 onChange={(e) =>
                   setConfig({
@@ -808,12 +831,10 @@ export function SiteSettingsPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label>Inspection Threshold (sqft)</label>
-              <input
+            <div className="grid gap-1.5">
+              <Label>Inspection Threshold (sqft)</Label>
+              <Input
                 type="number"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.pricingRules?.maxSqftInspectionThreshold || 1500}
                 onChange={(e) =>
                   setConfig({
@@ -824,12 +845,10 @@ export function SiteSettingsPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label>GST Tax Percent (%)</label>
-              <input
+            <div className="grid gap-1.5">
+              <Label>GST Tax Percent (%)</Label>
+              <Input
                 type="number"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.pricingRules?.gstPercent || 18}
                 onChange={(e) =>
                   setConfig({
@@ -839,23 +858,20 @@ export function SiteSettingsPage() {
                 }
               />
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
         {/* 4. PUBLIC CONTACT INFORMATION */}
-        <section className="panel" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <Phone size={20} style={{ color: 'var(--primary)' }} />
-            <h3 style={{ margin: 0 }}>Public Contact & Hotline Display</h3>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label>Display Toll-Free Hotline</label>
-              <input
+        <Card>
+          <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+            <Phone size={20} className="text-primary" />
+            <CardTitle>Public Contact & Hotline Display</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label>Display Toll-Free Hotline</Label>
+              <Input
                 type="text"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.contactInfo?.tollFree || '1800-212-2125'}
                 onChange={(e) =>
                   setConfig({
@@ -866,12 +882,10 @@ export function SiteSettingsPage() {
               />
             </div>
 
-            <div className="form-group">
-              <label>Direct Phone Dial URI</label>
-              <input
+            <div className="grid gap-1.5">
+              <Label>Direct Phone Dial URI</Label>
+              <Input
                 type="text"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.contactInfo?.phone || '18002122125'}
                 onChange={(e) =>
                   setConfig({
@@ -882,12 +896,10 @@ export function SiteSettingsPage() {
               />
             </div>
 
-            <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label>Support Email Address</label>
-              <input
+            <div className="grid gap-1.5 sm:col-span-2">
+              <Label>Support Email Address</Label>
+              <Input
                 type="email"
-                className="input-wrap"
-                style={{ width: '100%', padding: '10px 14px' }}
                 value={config.contactInfo?.email || 'support@techhousepest.com'}
                 onChange={(e) =>
                   setConfig({
@@ -897,16 +909,207 @@ export function SiteSettingsPage() {
                 }
               />
             </div>
-          </div>
-        </section>
 
-        <div style={{ textAlign: 'right', marginTop: '24px' }}>
-          <button className="primary-button" type="submit" disabled={saving} style={{ padding: '14px 28px', fontSize: '15px' }}>
-            {saving ? <RefreshCw size={18} className="spin" /> : <Save size={18} />}
+            <div className="grid gap-1.5 sm:col-span-2">
+              <Label>Office Address</Label>
+              <Input
+                type="text"
+                value={config.contactInfo?.address || ''}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    contactInfo: { ...config.contactInfo, address: e.target.value },
+                  })
+                }
+              />
+            </div>
+
+            <div className="grid gap-1.5 sm:col-span-2">
+              <Label>Working Hours</Label>
+              <Input
+                type="text"
+                value={config.contactInfo?.workingHours || ''}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    contactInfo: { ...config.contactInfo, workingHours: e.target.value },
+                  })
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <CouponManager />
+
+        <Card>
+          <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+            <Globe size={20} className="text-primary" />
+            <CardTitle>Legal Pages (Privacy, Terms, Cookies)</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <p className="text-[13px] text-muted-foreground">
+              Leave a field blank to keep showing the default page content. Basic HTML (headings, paragraphs, links) is supported.
+            </p>
+            <div className="grid gap-1.5">
+              <Label>Privacy Policy content (HTML)</Label>
+              <Textarea
+                rows={6}
+                className="font-mono text-xs"
+                value={config.legalContent?.privacyPolicy || ''}
+                onChange={(e) => setConfig({ ...config, legalContent: { ...config.legalContent, privacyPolicy: e.target.value } })}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Legal Statement / Terms content (HTML)</Label>
+              <Textarea
+                rows={6}
+                className="font-mono text-xs"
+                value={config.legalContent?.legalStatement || ''}
+                onChange={(e) => setConfig({ ...config, legalContent: { ...config.legalContent, legalStatement: e.target.value } })}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Cookie Policy content (HTML)</Label>
+              <Textarea
+                rows={6}
+                className="font-mono text-xs"
+                value={config.legalContent?.cookiePolicy || ''}
+                onChange={(e) => setConfig({ ...config, legalContent: { ...config.legalContent, cookiePolicy: e.target.value } })}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={saving} size="lg">
+            {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
             <span>{saving ? 'Publishing Changes...' : 'Publish Live Site Changes'}</span>
-          </button>
+          </Button>
         </div>
       </form>
     </div>
+  );
+}
+
+const emptyCoupon = { code: '', description: '', discountPercent: 10, expiresAt: '', usageLimit: '' };
+
+function CouponManager() {
+  const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(emptyCoupon);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = () => http.get('/coupons').then(({ data }) => setCoupons(data.items)).finally(() => setLoading(false));
+  useEffect(() => { load(); }, []);
+
+  const create = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await http.post('/coupons', {
+        ...form,
+        discountPercent: Number(form.discountPercent),
+        expiresAt: form.expiresAt || undefined,
+        usageLimit: form.usageLimit ? Number(form.usageLimit) : undefined,
+      });
+      setForm(emptyCoupon);
+      await load();
+    } catch (x) {
+      setError(x.response?.data?.error?.message || 'Could not create coupon');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleActive = async (coupon) => {
+    await http.patch('/coupons/' + coupon._id, { active: !coupon.active });
+    await load();
+  };
+
+  const remove = async (coupon) => {
+    if (!window.confirm('Delete coupon ' + coupon.code + '?')) return;
+    await http.delete('/coupons/' + coupon._id);
+    await load();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+        <Tag size={20} className="text-primary" />
+        <CardTitle>Coupon Codes</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={create} className="mb-5 grid grid-cols-1 items-end gap-3 sm:grid-cols-5">
+          {error && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-[13px] text-destructive sm:col-span-5">{error}</div>}
+          <div className="grid gap-1.5">
+            <Label>Code</Label>
+            <Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Discount %</Label>
+            <Input required type="number" min="1" max="100" value={form.discountPercent} onChange={(e) => setForm({ ...form, discountPercent: e.target.value })} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Description</Label>
+            <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Expires (optional)</Label>
+            <Input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Usage limit (optional)</Label>
+            <Input type="number" min="1" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} />
+          </div>
+          <Button type="submit" disabled={saving} className="sm:col-span-5 sm:w-fit">
+            <Plus size={16} /> Add coupon
+          </Button>
+        </form>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Code</TableHead>
+              <TableHead>Discount</TableHead>
+              <TableHead>Expires</TableHead>
+              <TableHead>Usage</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {coupons.map((c) => (
+              <TableRow key={c._id}>
+                <TableCell>
+                  <strong className="font-semibold">{c.code}</strong>
+                  {c.description && <div className="text-xs text-muted-foreground">{c.description}</div>}
+                </TableCell>
+                <TableCell>{c.discountPercent}%</TableCell>
+                <TableCell>{c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('en-IN') : 'No expiry'}</TableCell>
+                <TableCell>{c.usageCount}{c.usageLimit ? ' / ' + c.usageLimit : ''}</TableCell>
+                <TableCell>
+                  <Button type="button" variant="outline" size="sm" onClick={() => toggleActive(c)}>
+                    {c.active ? 'Active' : 'Inactive'}
+                  </Button>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button type="button" variant="ghost" size="icon" onClick={() => remove(c)}>
+                    <Trash2 size={16} className="text-destructive" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        {!loading && !coupons.length && (
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-[13px] text-muted-foreground">
+            No coupon codes yet
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

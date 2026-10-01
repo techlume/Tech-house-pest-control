@@ -1,11 +1,20 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { MapPin, Pencil, Plus, Search, UserRoundCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FilePlus, MapPin, Pencil, Plus, Search, Trash2, UserRoundCheck } from 'lucide-react';
 import { http } from '../services/http';
 import { useApiList } from '../hooks/useApiList';
 import { appAlert, appConfirm, appPrompt } from '../lib/dialog';
-import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 const LocationPicker = lazy(() =>
   import('../components/LocationPicker').then((module) => ({
     default: module.LocationPicker,
@@ -17,9 +26,6 @@ const emptyLead = {
   email: '',
   source: 'Website',
   propertyType: 'Residential',
-  pestTypes: '',
-  address: '',
-  city: '',
   priority: 'Normal',
   notes: '',
   branchId: '',
@@ -55,6 +61,7 @@ const leadTransitions = {
   Negotiation: ['Won', 'Lost'],
 };
 export function CrmPage() {
+  const navigate = useNavigate();
   const [tabs, setTab] = useState('leads'),
     [search, setSearch] = useState(''),
     [modal, setModal] = useState(null),
@@ -62,8 +69,8 @@ export function CrmPage() {
     [managedLead, setManagedLead] = useState(null),
     [propertyCustomer, setPropertyCustomer] = useState(null),
     [property, setProperty] = useState(emptyProperty),
+    [newFollowUpNote, setNewFollowUpNote] = useState(''),
     [leadManagement, setLeadManagement] = useState({
-      assignedTo: '',
       nextFollowUpAt: '',
       notes: '',
     }),
@@ -71,15 +78,12 @@ export function CrmPage() {
   const { user } = useAuth();
   const leads = useApiList('/leads?limit=100'),
     customers = useApiList('/customers?limit=100'),
-    branches = useApiList('/branches'),
-    salespeople = useApiList(
-      '/technicians/salespeople' +
-        (managedLead?.branchId ? '?branchId=' + managedLead.branchId : ''),
-    );
+    branches = useApiList('/branches');
   const [lead, setLead] = useState(emptyLead),
     [customer, setCustomer] = useState(emptyCustomer);
-  const allBranches = ['OWNER', 'ADMIN'].includes(user?.role);
-  const canEdit = ['OWNER', 'ADMIN', 'SALESPERSON'].includes(user?.role);
+  const allBranches = user?.role === 'ADMIN';
+  const canEdit = user?.role === 'ADMIN' ||
+    (user?.role === 'SUB_ADMIN' && user?.canEdit);
   const filtered = useMemo(() => {
     const rows = tabs === 'leads' ? leads.data : customers.data;
     return rows.filter((x) =>
@@ -94,10 +98,6 @@ export function CrmPage() {
     try {
       await http.post('/leads', {
         ...lead,
-        pestTypes: lead.pestTypes
-          .split(',')
-          .map((x) => x.trim())
-          .filter(Boolean),
         branchId: lead.branchId || undefined,
       });
       setModal(null);
@@ -211,7 +211,6 @@ export function CrmPage() {
     setMessage('');
     try {
       await http.patch('/leads/' + managedLead._id, {
-        assignedTo: leadManagement.assignedTo || null,
         nextFollowUpAt: leadManagement.nextFollowUpAt || null,
         notes: leadManagement.notes,
       });
@@ -223,222 +222,316 @@ export function CrmPage() {
       setSaving(false);
     }
   };
+
+  const addFollowUp = async (e) => {
+    if (e) e.preventDefault();
+    if (!leadManagement.nextFollowUpAt && !newFollowUpNote.trim()) {
+      setMessage('Please enter a follow-up date or note');
+      return;
+    }
+    setSaving(true);
+    setMessage('');
+    try {
+      await http.post('/leads/' + managedLead._id + '/follow-up', {
+        nextFollowUpAt: leadManagement.nextFollowUpAt || null,
+        note: newFollowUpNote.trim(),
+      });
+      setNewFollowUpNote('');
+      const res = await http.get('/leads');
+      const updated = (res.data?.items || []).find((l) => l._id === managedLead._id);
+      if (updated) setManagedLead(updated);
+      await leads.reload();
+    } catch (x) {
+      setMessage(x.response?.data?.error?.message || 'Could not record follow-up');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteLead = async (row) => {
+    const ok = await appConfirm(`Delete lead "${row.name}" (${row.leadNo})?`, { title: 'Delete Lead' });
+    if (!ok) return;
+    try {
+      await http.delete('/leads/' + row._id);
+      await leads.reload();
+    } catch (x) {
+      await appAlert(x.response?.data?.error?.message || 'Could not delete lead');
+    }
+  };
+
+  const deleteCustomer = async (row) => {
+    const ok = await appConfirm(`Delete customer "${row.name}" (${row.customerNo})?`, { title: 'Delete Customer' });
+    if (!ok) return;
+    try {
+      await http.delete('/customers/' + row._id);
+      await customers.reload();
+    } catch (x) {
+      await appAlert(x.response?.data?.error?.message || 'Could not delete customer');
+    }
+  };
   return (
     <>
-      <div className='page-heading actions'>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className='eyebrow'>Sales workspace</span>
-          <h2>CRM & Customers</h2>
-          <p>
-            Capture enquiries and turn qualified opportunities into customer
-            sites.
+          <span className="eyebrow">Sales workspace</span>
+          <h2 className="text-2xl font-extrabold tracking-tight">CRM & Customers</h2>
+          <p className="text-sm text-muted-foreground">
+            Capture enquiries and turn qualified opportunities into customer sites.
           </p>
         </div>
-        {canEdit && <button
-          className='primary-button compact'
-          onClick={() => {
-            setMessage('');
-            if (tabs === 'leads') setLead(emptyLead);
-            else setCustomer(emptyCustomer);
-            setModal(tabs === 'leads' ? 'lead' : 'customer');
-          }}
-        >
-          <Plus size={17} /> Add {tabs === 'leads' ? 'lead' : 'customer'}
-        </button>}
+        {canEdit && (
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => {
+              setMessage('');
+              if (tabs === 'leads') setLead(emptyLead);
+              else setCustomer(emptyCustomer);
+              setModal(tabs === 'leads' ? 'lead' : 'customer');
+            }}
+          >
+            <Plus size={17} /> Add {tabs === 'leads' ? 'lead' : 'customer'}
+          </Button>
+        )}
       </div>
-      <div className='toolbar'>
-        <div className='tabs'>
-          <button
-            className={tabs === 'leads' ? 'active' : ''}
-            onClick={() => setTab('leads')}
-          >
-            Leads <b>{leads.data.length}</b>
-          </button>
-          <button
-            className={tabs === 'customers' ? 'active' : ''}
-            onClick={() => setTab('customers')}
-          >
-            Customers <b>{customers.data.length}</b>
-          </button>
-        </div>
-        <label className='search'>
-          <Search size={17} />
-          <input
-            placeholder='Search name, phone or number'
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs value={tabs} onValueChange={setTab}>
+          <TabsList>
+            <TabsTrigger value="leads">
+              Leads <span className="ml-1.5 font-bold">{leads.data.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="customers">
+              Customers <span className="ml-1.5 font-bold">{customers.data.length}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="relative w-full sm:w-72">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search name, phone or number"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </label>
+        </div>
       </div>
-      <div className='table-card'>
-        <table>
-          <thead>
-            <tr>
-              <th>Reference</th>
-              <th>Name</th>
-              <th>Contact</th>
-              <th>{tabs === 'leads' ? 'Source' : 'Properties'}</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
+
+      <Card className="mt-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{tabs === 'leads' ? 'Lead No' : 'Customer ID'}</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Salesperson</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>{tabs === 'leads' ? 'Source' : 'Sites'}</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.map((row) => (
-              <tr key={row._id}>
-                <td>
-                  <strong>{row.leadNo || row.customerNo}</strong>
-                </td>
-                <td>
-                  {row.name}
-                  <small>{row.propertyType || row.customerType}</small>
-                </td>
-                <td>
-                  {row.phone}
-                  <small>{row.email || 'No email'}</small>
-                </td>
-                <td>
+              <TableRow key={row._id}>
+                <TableCell>
+                  <strong className="font-semibold">{row.leadNo || row.customerNo}</strong>
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium text-foreground">{row.name}</div>
+                  <small className="text-muted-foreground">{row.propertyType || row.customerType}</small>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                    {row.salespersonName || row.createdBy?.name || '—'}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <div>{row.phone}</div>
+                  <small className="text-muted-foreground">{row.email || 'No email'}</small>
+                </TableCell>
+                <TableCell>
                   {tabs === 'leads'
                     ? row.source
                     : `${row.properties?.length || 0} site(s)`}
-                </td>
-                <td>
-                  <StatusBadge
-                    value={
-                      tabs === 'leads'
-                        ? row.status
-                        : row.active
-                          ? 'Active'
-                          : 'Inactive'
-                    }
-                  />
-                  {canEdit &&
-                    tabs === 'leads' &&
-                    leadTransitions[row.status]?.length > 0 && (
-                      <select
-                        className='inline-transition'
-                        defaultValue=''
-                        disabled={saving}
-                        onChange={(e) => changeLeadStatus(row, e.target.value)}
-                      >
-                        <option value=''>Move to…</option>
-                        {leadTransitions[row.status].map((status) => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col items-start gap-1.5">
+                    <StatusBadge
+                      value={
+                        tabs === 'leads'
+                          ? row.status
+                          : row.active
+                            ? 'Active'
+                            : 'Inactive'
+                      }
+                    />
+                    {canEdit &&
+                      tabs === 'leads' &&
+                      leadTransitions[row.status]?.length > 0 && (
+                        <Select disabled={saving} onValueChange={(status) => changeLeadStatus(row, status)}>
+                          <SelectTrigger className="h-8 w-[150px] text-xs">
+                            <SelectValue placeholder="Move to…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {leadTransitions[row.status].map((status) => (
+                              <SelectItem key={status} value={status}>{status}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    {canEdit && tabs === 'leads' && !row.convertedCustomerId && row.status !== 'Lost' && (
+                      <Button variant="ghost" size="icon" title="Convert to customer" onClick={() => convert(row)}>
+                        <UserRoundCheck size={18} className="text-emerald-600" />
+                      </Button>
                     )}
-                </td>
-                <td>
-                  {canEdit && tabs === 'leads' && !row.convertedCustomerId && row.status !== 'Lost' && (
-                    <button
-                      className='icon-action'
-                      title='Convert to customer'
-                      onClick={() => convert(row)}
-                    >
-                      <UserRoundCheck size={18} />
-                    </button>
-                  )}
-                  {canEdit && tabs === 'leads' && (
-                    <button
-                      className='icon-action'
-                      title='Assignment and follow-up'
-                      onClick={() => {
-                        const followUp = row.nextFollowUpAt
-                          ? new Date(row.nextFollowUpAt)
-                          : null;
-                        if (followUp)
-                          followUp.setMinutes(
-                            followUp.getMinutes() - followUp.getTimezoneOffset(),
-                          );
-                        setMessage('');
-                        setManagedLead(row);
-                        setLeadManagement({
-                          assignedTo: row.assignedTo?._id || '',
-                          nextFollowUpAt: followUp
-                            ? followUp.toISOString().slice(0, 16)
-                            : '',
-                          notes: row.notes || '',
-                        });
-                      }}
-                    >
-                      <Pencil size={17} />
-                    </button>
-                  )}
-                  {canEdit && tabs === 'customers' && (
-                    <button
-                      className='icon-action'
-                      title='Add service property'
-                      onClick={() => {
-                        setMessage('');
-                        setProperty({
-                          ...emptyProperty,
-                          propertyType: row.customerType || 'Residential',
-                        });
-                        setPropertyCustomer(row);
-                      }}
-                    >
-                      <MapPin size={17} />
-                    </button>
-                  )}
-                  {canEdit && tabs === 'customers' && (
-                    <button
-                      className='icon-action'
-                      title='Edit customer'
-                      onClick={() => {
-                        const property = row.properties?.[0];
-                        setMessage('');
-                        setCustomer({
-                          _id: row._id,
-                          name: row.name,
-                          phone: row.phone,
-                          email: row.email || '',
-                          customerType: row.customerType,
-                          gstin: row.gstin || '',
-                          branchId: row.branchId,
-                          propertyId: property?._id || '',
-                          propertyName: property?.name || 'Primary Site',
-                          line1: property?.address?.line1 || '',
-                          city: property?.address?.city || 'Cuddalore',
-                          state: property?.address?.state || 'Tamil Nadu',
-                          pin: property?.address?.pin || '',
-                          location: property?.location || null,
-                        });
-                        setModal('customer');
-                      }}
-                    >
-                      <Pencil size={17} />
-                    </button>
-                  )}
-                </td>
-              </tr>
+                    {canEdit && tabs === 'leads' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Follow-up and notes"
+                        onClick={() => {
+                          const followUp = row.nextFollowUpAt
+                            ? new Date(row.nextFollowUpAt)
+                            : null;
+                          if (followUp)
+                            followUp.setMinutes(
+                              followUp.getMinutes() - followUp.getTimezoneOffset(),
+                            );
+                          setMessage('');
+                          setNewFollowUpNote('');
+                          setManagedLead(row);
+                          setLeadManagement({
+                            nextFollowUpAt: followUp
+                              ? followUp.toISOString().slice(0, 16)
+                              : '',
+                            notes: row.notes || '',
+                          });
+                        }}
+                      >
+                        <Pencil size={17} />
+                      </Button>
+                    )}
+                    {canEdit && tabs === 'leads' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Delete lead"
+                        onClick={() => deleteLead(row)}
+                      >
+                        <Trash2 size={16} className="text-destructive" />
+                      </Button>
+                    )}
+                    {canEdit && tabs === 'customers' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1 px-2.5 text-xs font-semibold text-primary hover:bg-primary hover:text-white"
+                        title="Create quotation"
+                        onClick={() => navigate('/quotations?customerId=' + row._id)}
+                      >
+                        <FilePlus size={14} /> Create Quotation
+                      </Button>
+                    )}
+                    {canEdit && tabs === 'customers' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Add service property"
+                        onClick={() => {
+                          setMessage('');
+                          setProperty({
+                            ...emptyProperty,
+                            propertyType: row.customerType || 'Residential',
+                          });
+                          setPropertyCustomer(row);
+                        }}
+                      >
+                        <MapPin size={17} />
+                      </Button>
+                    )}
+                    {canEdit && tabs === 'customers' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Edit customer"
+                        onClick={() => {
+                          const property = row.properties?.[0];
+                          setMessage('');
+                          setCustomer({
+                            _id: row._id,
+                            name: row.name,
+                            phone: row.phone,
+                            email: row.email || '',
+                            customerType: row.customerType,
+                            gstin: row.gstin || '',
+                            branchId: row.branchId,
+                            propertyId: property?._id || '',
+                            propertyName: property?.name || 'Primary Site',
+                            line1: property?.address?.line1 || '',
+                            city: property?.address?.city || 'Cuddalore',
+                            state: property?.address?.state || 'Tamil Nadu',
+                            pin: property?.address?.pin || '',
+                            location: property?.location || null,
+                          });
+                          setModal('customer');
+                        }}
+                      >
+                        <Pencil size={17} />
+                      </Button>
+                    )}
+                    {canEdit && tabs === 'customers' && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Delete customer"
+                        onClick={() => deleteCustomer(row)}
+                      >
+                        <Trash2 size={16} className="text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {!filtered.length && (
-          <div className='empty-table'>
+          <div className="p-10 text-center text-sm text-muted-foreground">
             {(tabs === 'leads' ? leads.loading : customers.loading)
               ? 'Loading…'
               : 'No matching records'}
           </div>
         )}
-      </div>
-      {modal === 'lead' && (
-        <Modal title='Create lead' onClose={() => setModal(null)}>
+      </Card>
+
+      <Dialog open={modal === 'lead'} onOpenChange={(o) => !o && setModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create lead</DialogTitle>
+          </DialogHeader>
           <LeadForm
             value={lead}
             setValue={setLead}
             branches={branches.data}
             allBranches={allBranches}
+            currentUser={user}
             message={message}
             saving={saving}
             submit={saveLead}
           />
-        </Modal>
-      )}
-      {modal === 'customer' && (
-        <Modal
-          title={customer._id ? 'Edit customer and primary site' : 'Create customer and primary site'}
-          onClose={() => setModal(null)}
-        >
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={modal === 'customer'} onOpenChange={(o) => !o && setModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {customer._id ? 'Edit customer and primary site' : 'Create customer and primary site'}
+            </DialogTitle>
+          </DialogHeader>
           <CustomerForm
             value={customer}
             setValue={setCustomer}
@@ -448,39 +541,88 @@ export function CrmPage() {
             saving={saving}
             submit={saveCustomer}
           />
-        </Modal>
-      )}
-      {managedLead && (
-        <Modal title={'Manage lead · ' + managedLead.leadNo} onClose={() => setManagedLead(null)}>
-          <form className='form-grid' onSubmit={saveLeadManagement}>
-            {message && <div className='form-error wide'>{message}</div>}
-            <label>
-              <span>Salesperson</span>
-              <select value={leadManagement.assignedTo} onChange={(e) => setLeadManagement({...leadManagement,assignedTo:e.target.value})}>
-                <option value=''>Unassigned</option>
-                {salespeople.data.map((person) => <option key={person._id} value={person._id}>{person.name}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Next follow-up</span>
-              <input type='datetime-local' value={leadManagement.nextFollowUpAt} onChange={(e) => setLeadManagement({...leadManagement,nextFollowUpAt:e.target.value})} />
-            </label>
-            <label className='wide'>
-              <span>Notes</span>
-              <textarea rows='3' value={leadManagement.notes} onChange={(e) => setLeadManagement({...leadManagement,notes:e.target.value})} />
-            </label>
-            <div className='lead-timeline wide'>
-              <h4>Activity timeline</h4>
-              {[...(managedLead.activities || [])].reverse().map((activity) => (
-                <div key={activity._id}><strong>{activity.type}</strong><span>{activity.note}</span><small>{new Date(activity.createdAt).toLocaleString('en-IN')}</small></div>
-              ))}
-            </div>
-            <div className='form-actions wide'><button className='primary-button' disabled={saving}>{saving ? 'Saving…' : 'Save assignment'}</button></div>
-          </form>
-        </Modal>
-      )}
-      {propertyCustomer && (
-        <Modal title={'Add service property · ' + propertyCustomer.name} onClose={() => setPropertyCustomer(null)}>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(managedLead)} onOpenChange={(o) => !o && setManagedLead(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{managedLead ? 'Manage lead · ' + managedLead.leadNo : 'Manage lead'}</DialogTitle>
+          </DialogHeader>
+          {managedLead && (
+            <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={saveLeadManagement}>
+              {message && <div className="form-error sm:col-span-2">{message}</div>}
+              <Field label="Salesperson">
+                <Input disabled value={managedLead.salespersonName || managedLead.createdBy?.name || '—'} />
+              </Field>
+              <Field label="Next follow-up date & time">
+                <Input
+                  type="datetime-local"
+                  value={leadManagement.nextFollowUpAt}
+                  onChange={(e) => setLeadManagement({ ...leadManagement, nextFollowUpAt: e.target.value })}
+                />
+              </Field>
+              <Field label="Add follow-up notes" wide>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter discussion notes from call or visit…"
+                    value={newFollowUpNote}
+                    onChange={(e) => setNewFollowUpNote(e.target.value)}
+                  />
+                  <Button type="button" disabled={saving} onClick={addFollowUp}>
+                    Add note
+                  </Button>
+                </div>
+              </Field>
+              <Field label="General lead notes" wide>
+                <Textarea
+                  rows="2"
+                  value={leadManagement.notes}
+                  onChange={(e) => setLeadManagement({ ...leadManagement, notes: e.target.value })}
+                />
+              </Field>
+              <div className="grid gap-2 sm:col-span-2">
+                <Label className="text-sm text-foreground">Activity timeline & follow-up log</Label>
+                <div className="grid max-h-56 gap-2 overflow-y-auto rounded-xl border border-border p-2.5">
+                  {[...(managedLead.activities || [])].reverse().map((activity) => (
+                    <div
+                      key={activity._id || Math.random()}
+                      className="grid grid-cols-[100px_1fr_auto] items-start gap-2 border-b border-border pb-2 text-xs last:border-0 last:pb-0"
+                    >
+                      <strong className="font-semibold text-primary">{activity.type}</strong>
+                      <div>
+                        <span>{activity.note}</span>
+                        {activity.salespersonName && (
+                          <span className="ml-1.5 text-[11px] text-muted-foreground">
+                            (by {activity.salespersonName})
+                          </span>
+                        )}
+                      </div>
+                      <small className="text-muted-foreground whitespace-nowrap">
+                        {new Date(activity.createdAt).toLocaleString('en-IN')}
+                      </small>
+                    </div>
+                  ))}
+                  {!managedLead.activities?.length && (
+                    <span className="text-xs text-muted-foreground">No activity recorded yet.</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end sm:col-span-2">
+                <Button disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(propertyCustomer)} onOpenChange={(o) => !o && setPropertyCustomer(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {propertyCustomer ? 'Add service property · ' + propertyCustomer.name : 'Add service property'}
+            </DialogTitle>
+          </DialogHeader>
           <PropertyForm
             value={property}
             setValue={setProperty}
@@ -488,70 +630,73 @@ export function CrmPage() {
             saving={saving}
             submit={saveProperty}
           />
-        </Modal>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 function PropertyForm({ value, setValue, message, saving, submit }) {
   const set = (key, next) => setValue({ ...value, [key]: next });
   return (
-    <form className='form-grid' onSubmit={submit}>
-      {message && <div className='form-error wide'>{message}</div>}
-      <Field label='Site name'>
-        <input required value={value.name} onChange={(e) => set('name', e.target.value)} />
+    <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={submit}>
+      {message && <div className="form-error sm:col-span-2">{message}</div>}
+      <Field label="Site name">
+        <Input required value={value.name} onChange={(e) => set('name', e.target.value)} />
       </Field>
-      <Field label='Property type'>
-        <select value={value.propertyType} onChange={(e) => set('propertyType', e.target.value)}>
-          <option>Residential</option>
-          <option>Commercial</option>
-          <option>Industrial</option>
-        </select>
+      <Field label="Property type">
+        <Select value={value.propertyType} onValueChange={(v) => set('propertyType', v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Residential">Residential</SelectItem>
+            <SelectItem value="Commercial">Commercial</SelectItem>
+            <SelectItem value="Industrial">Industrial</SelectItem>
+          </SelectContent>
+        </Select>
       </Field>
-      <Field label='Address' wide>
-        <input required value={value.line1} onChange={(e) => set('line1', e.target.value)} />
+      <Field label="Address" wide>
+        <Input required value={value.line1} onChange={(e) => set('line1', e.target.value)} />
       </Field>
-      <Field label='City'>
-        <input required value={value.city} onChange={(e) => set('city', e.target.value)} />
+      <Field label="City">
+        <Input required value={value.city} onChange={(e) => set('city', e.target.value)} />
       </Field>
-      <Field label='State'>
-        <input required value={value.state} onChange={(e) => set('state', e.target.value)} />
+      <Field label="State">
+        <Input required value={value.state} onChange={(e) => set('state', e.target.value)} />
       </Field>
-      <Field label='PIN'>
-        <input value={value.pin} onChange={(e) => set('pin', e.target.value)} />
+      <Field label="PIN">
+        <Input value={value.pin} onChange={(e) => set('pin', e.target.value)} />
       </Field>
-      <div className='wide'>
-        <Suspense fallback={<div className='empty-table'>Loading map…</div>}>
+      <div className="sm:col-span-2">
+        <Suspense fallback={<div className="p-6 text-center text-sm text-muted-foreground">Loading map…</div>}>
           <LocationPicker value={value.location} onChange={(location) => set('location', location)} />
         </Suspense>
       </div>
-      <div className='form-actions wide'>
-        <button className='primary-button' disabled={saving}>
-          {saving ? 'Adding property…' : 'Add property'}
-        </button>
+      <div className="flex justify-end sm:col-span-2">
+        <Button disabled={saving}>{saving ? 'Adding property…' : 'Add property'}</Button>
       </div>
     </form>
   );
 }
 function Field({ label, children, wide }) {
   return (
-    <label className={wide ? 'wide' : ''}>
-      <span>{label}</span>
+    <div className={`grid gap-1.5${wide ? ' sm:col-span-2' : ''}`}>
+      <Label>{label}</Label>
       {children}
-    </label>
+    </div>
   );
 }
 function BranchField({ value, setValue, branches, show }) {
   return show ? (
-    <Field label='Branch'>
-      <select required value={value} onChange={(e) => setValue(e.target.value)}>
-        <option value=''>Select branch</option>
-        {branches.map((b) => (
-          <option key={b._id} value={b._id}>
-            {b.name}
-          </option>
-        ))}
-      </select>
+    <Field label="Branch">
+      <Select required value={value} onValueChange={setValue}>
+        <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
+        <SelectContent>
+          {branches.map((b) => (
+            <SelectItem key={b._id} value={b._id}>
+              {b.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </Field>
   ) : null;
 }
@@ -560,96 +705,87 @@ function LeadForm({
   setValue,
   branches,
   allBranches,
+  currentUser,
   message,
   saving,
   submit,
 }) {
   const set = (k, v) => setValue({ ...value, [k]: v });
   return (
-    <form className='form-grid' onSubmit={submit}>
-      {message && <div className='form-error wide'>{message}</div>}
+    <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={submit}>
+      {message && <div className="form-error sm:col-span-2">{message}</div>}
+      <Field label="Salesperson (Auto-assigned)">
+        <Input disabled value={currentUser?.name || currentUser?.email || 'Current user'} />
+      </Field>
       <BranchField
         value={value.branchId}
         setValue={(v) => set('branchId', v)}
         branches={branches}
         show={allBranches}
       />
-      <Field label='Name'>
-        <input
+      <Field label="Name">
+        <Input
           required
           value={value.name}
           onChange={(e) => set('name', e.target.value)}
         />
       </Field>
-      <Field label='Phone'>
-        <input
+      <Field label="Phone">
+        <Input
           required
           value={value.phone}
           onChange={(e) => set('phone', e.target.value)}
         />
       </Field>
-      <Field label='Email'>
-        <input
-          type='email'
+      <Field label="Email">
+        <Input
+          type="email"
           value={value.email}
           onChange={(e) => set('email', e.target.value)}
         />
       </Field>
-      <Field label='Source'>
-        <select
-          value={value.source}
-          onChange={(e) => set('source', e.target.value)}
-        >
-          <option>Website</option>
-          <option>Referral</option>
-          <option>Phone</option>
-          <option>Walk-in</option>
-          <option>Other</option>
-        </select>
+      <Field label="Source">
+        <Select value={value.source} onValueChange={(v) => set('source', v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Website">Website</SelectItem>
+            <SelectItem value="Referral">Referral</SelectItem>
+            <SelectItem value="Phone">Phone</SelectItem>
+            <SelectItem value="Walk-in">Walk-in</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
       </Field>
-      <Field label='Property type'>
-        <select
-          value={value.propertyType}
-          onChange={(e) => set('propertyType', e.target.value)}
-        >
-          <option>Residential</option>
-          <option>Commercial</option>
-          <option>Industrial</option>
-        </select>
+      <Field label="Property type">
+        <Select value={value.propertyType} onValueChange={(v) => set('propertyType', v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Residential">Residential</SelectItem>
+            <SelectItem value="Commercial">Commercial</SelectItem>
+            <SelectItem value="Industrial">Industrial</SelectItem>
+          </SelectContent>
+        </Select>
       </Field>
-      <Field label='Priority'>
-        <select
-          value={value.priority}
-          onChange={(e) => set('priority', e.target.value)}
-        >
-          <option>Low</option>
-          <option>Normal</option>
-          <option>High</option>
-          <option>Urgent</option>
-        </select>
+      <Field label="Priority">
+        <Select value={value.priority} onValueChange={(v) => set('priority', v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Low">Low</SelectItem>
+            <SelectItem value="Normal">Normal</SelectItem>
+            <SelectItem value="High">High</SelectItem>
+            <SelectItem value="Urgent">Urgent</SelectItem>
+          </SelectContent>
+        </Select>
       </Field>
-      <Field label='Pest types (comma separated)' wide>
-        <input
-          value={value.pestTypes}
-          onChange={(e) => set('pestTypes', e.target.value)}
+      <Field label="Notes" wide>
+        <Textarea
+          rows="3"
+          value={value.notes}
+          onChange={(e) => set('notes', e.target.value)}
         />
       </Field>
-      <Field label='Address' wide>
-        <input
-          value={value.address}
-          onChange={(e) => set('address', e.target.value)}
-        />
-      </Field>
-      <Field label='City'>
-        <input
-          value={value.city}
-          onChange={(e) => set('city', e.target.value)}
-        />
-      </Field>
-      <div className='form-actions wide'>
-        <button type='submit' className='primary-button' disabled={saving}>
-          {saving ? 'Saving…' : 'Create lead'}
-        </button>
+      <div className="flex justify-end sm:col-span-2">
+        <Button disabled={saving}>{saving ? 'Saving…' : 'Create lead'}</Button>
       </div>
     </form>
   );
@@ -665,94 +801,94 @@ function CustomerForm({
 }) {
   const set = (k, v) => setValue({ ...value, [k]: v });
   return (
-    <form className='form-grid' onSubmit={submit}>
-      {message && <div className='form-error wide'>{message}</div>}
+    <form className="grid grid-cols-1 gap-4 px-6 py-5 sm:grid-cols-2" onSubmit={submit}>
+      {message && <div className="form-error sm:col-span-2">{message}</div>}
       <BranchField
         value={value.branchId}
         setValue={(v) => set('branchId', v)}
         branches={branches}
         show={allBranches}
       />
-      <Field label='Customer name'>
-        <input
+      <Field label="Customer name">
+        <Input
           required
           value={value.name}
           onChange={(e) => set('name', e.target.value)}
         />
       </Field>
-      <Field label='Phone'>
-        <input
+      <Field label="Phone">
+        <Input
           required
           value={value.phone}
           onChange={(e) => set('phone', e.target.value)}
         />
       </Field>
-      <Field label='Email'>
-        <input
-          type='email'
+      <Field label="Email">
+        <Input
+          type="email"
           value={value.email}
           onChange={(e) => set('email', e.target.value)}
         />
       </Field>
-      <Field label='Customer type'>
-        <select
-          value={value.customerType}
-          onChange={(e) => set('customerType', e.target.value)}
-        >
-          <option>Residential</option>
-          <option>Commercial</option>
-          <option>Industrial</option>
-        </select>
+      <Field label="Customer type">
+        <Select value={value.customerType} onValueChange={(v) => set('customerType', v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Residential">Residential</SelectItem>
+            <SelectItem value="Commercial">Commercial</SelectItem>
+            <SelectItem value="Industrial">Industrial</SelectItem>
+          </SelectContent>
+        </Select>
       </Field>
-      <Field label='GSTIN'>
-        <input
+      <Field label="GSTIN">
+        <Input
           value={value.gstin}
           onChange={(e) => set('gstin', e.target.value)}
         />
       </Field>
-      <Field label='Site name'>
-        <input
+      <Field label="Site name">
+        <Input
           required
           value={value.propertyName}
           onChange={(e) => set('propertyName', e.target.value)}
         />
       </Field>
-      <Field label='Address' wide>
-        <input
+      <Field label="Address" wide>
+        <Input
           required
           value={value.line1}
           onChange={(e) => set('line1', e.target.value)}
         />
       </Field>
-      <Field label='City'>
-        <input
+      <Field label="City">
+        <Input
           required
           value={value.city}
           onChange={(e) => set('city', e.target.value)}
         />
       </Field>
-      <Field label='State'>
-        <input
+      <Field label="State">
+        <Input
           required
           value={value.state}
           onChange={(e) => set('state', e.target.value)}
         />
       </Field>
-      <div className='wide'>
-        <Suspense fallback={<div className='empty-table'>Loading map…</div>}>
+      <div className="sm:col-span-2">
+        <Suspense fallback={<div className="p-6 text-center text-sm text-muted-foreground">Loading map…</div>}>
           <LocationPicker
             value={value.location}
             onChange={(location) => set('location', location)}
           />
         </Suspense>
       </div>
-      <Field label='PIN'>
-        <input value={value.pin} onChange={(e) => set('pin', e.target.value)} />
+      <Field label="PIN">
+        <Input value={value.pin} onChange={(e) => set('pin', e.target.value)} />
       </Field>
-      <div className='form-actions wide'>
-        <button type='submit' className='primary-button' disabled={saving}>
+      <div className="flex justify-end sm:col-span-2">
+        <Button disabled={saving}>
           {saving ? 'Saving…' : value._id ? 'Save customer' : 'Create customer'}
-        </button>
+        </Button>
       </div>
     </form>
   );

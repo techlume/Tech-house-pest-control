@@ -13,19 +13,3 @@ export const notifyUser = async (userId, data) => {
     ...data,
   });
 };
-export const notifyCustomer = async (customerId, data) => {
-  const users = await User.find({
-    customerId,
-    role: 'CUSTOMER',
-    active: true,
-  }).select('_id companyId branchId');
-  if (!users.length) return [];
-  return Notification.insertMany(
-    users.map((user) => ({
-      companyId: user.companyId,
-      branchId: user.branchId,
-      userId: user._id,
-      ...data,
-    })),
-  );
-};

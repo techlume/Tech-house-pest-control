@@ -16,6 +16,6 @@ router.get('/bookings', getStorefrontBookings);
 router.post('/bookings', createStorefrontBooking);
 
 // Protected routes for Admin Site Changes
-router.put('/', authenticate, allowRoles(ROLES.OWNER, ROLES.ADMIN), updateSiteConfig);
+router.put('/', authenticate, allowRoles(ROLES.ADMIN), updateSiteConfig);
 
 export default router;

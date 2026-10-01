@@ -6,24 +6,19 @@ import {
   authenticate,
   allowRoles,
   branchScope,
-  customerDataScope,
 } from '../middleware/auth.js';
 import { ROLES } from '../constants/roles.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { nextReference } from '../services/sequenceService.js';
 import { pagination } from '../utils/scope.js';
 import { AppError } from '../utils/AppError.js';
-import { notifyCustomer } from '../services/notificationService.js';
 const router = Router();
 router.use(authenticate);
 router.get(
   '/',
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = pagination(req.query);
-    const filter = {
-      ...branchScope(req, req.query.branchId),
-      ...customerDataScope(req),
-    };
+    const filter = branchScope(req, req.query.branchId);
     const [items, total] = await Promise.all([
       Contract.find(filter)
         .populate('customerId', 'name customerNo')
@@ -37,7 +32,7 @@ router.get(
 );
 router.post(
   '/from-quotation/:quotationId',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const quotation = await Quotation.findOne({
       ...branchScope(req),
@@ -111,7 +106,7 @@ router.post(
 );
 router.patch(
   '/:id/status',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const contract = await Contract.findOne({
       ...branchScope(req),
@@ -145,7 +140,7 @@ router.patch(
 );
 router.post(
   '/:id/renew',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN, ROLES.SALESPERSON),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const previous = await Contract.findOne({
       ...branchScope(req),
@@ -221,15 +216,6 @@ router.post(
     previous.status = 'Renewed';
     previous.updatedBy = req.auth.userId;
     await previous.save();
-    await notifyCustomer(contract.customerId, {
-      type: 'CONTRACT_RENEWED',
-      title: 'Service contract renewed',
-      message:
-        contract.contractNo +
-        ' is active until ' +
-        new Date(contract.endDate).toLocaleDateString('en-IN'),
-      link: '/contracts',
-    });
     res.status(201).json({ contract, visitsCreated: visits.length });
   }),
 );

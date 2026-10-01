@@ -37,7 +37,7 @@ router.patch('/notifications/:id/read', asyncHandler(async (req, res) => {
 }));
 router.get(
   '/audit',
-  allowRoles(ROLES.OWNER, ROLES.ADMIN),
+  allowRoles(ROLES.ADMIN),
   asyncHandler(async (req, res) => {
     const { page, limit, skip } = pagination(req.query);
     const filter = branchScope(req, req.query.branchId);
