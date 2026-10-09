@@ -253,6 +253,7 @@ router.patch(
       'igstRate',
       'notes',
       'terms',
+      'signatureUrl',
       'propertyId',
       'customerId',
       'branchId',
