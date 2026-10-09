@@ -56,6 +56,10 @@ const initial = {
   validUntil: '',
   gstTreatment: 'GST',
   taxType: 'CGST+SGST',
+  selectedTaxes: ['CGST', 'SGST'],
+  cgstRate: 9,
+  sgstRate: 9,
+  igstRate: 18,
   lines: [blankLine()],
   notes: '',
   terms: 'This quotation is valid only for the specified period (15 days).\nA 50% advance payment must be made before the treatment begins.',
@@ -159,6 +163,10 @@ export function QuotationsPage() {
       validUntil: form.validUntil,
       gstTreatment: form.gstTreatment,
       taxType: form.taxType,
+      selectedTaxes: form.selectedTaxes || ['CGST', 'SGST'],
+      cgstRate: Number(form.cgstRate ?? 9),
+      sgstRate: Number(form.sgstRate ?? 9),
+      igstRate: Number(form.igstRate ?? 18),
       terms: form.terms,
       notes: form.notes,
       lines: form.lines.map((line) => ({
@@ -195,13 +203,25 @@ export function QuotationsPage() {
   const startEditQuotation = (q) => {
     setEditingQuotationId(q._id);
     const validUntilDate = q.validUntil ? new Date(q.validUntil).toISOString().split('T')[0] : '';
+    const activeTaxes = Array.isArray(q.selectedTaxes) && q.selectedTaxes.length
+      ? q.selectedTaxes
+      : q.taxType === 'IGST'
+      ? ['IGST']
+      : q.taxType === 'Exempt'
+      ? []
+      : ['CGST', 'SGST'];
+
     setForm({
       branchId: q.branchId?._id || q.branchId || '',
       customerId: q.customerId?._id || q.customerId || '',
       propertyId: q.propertyId?._id || q.propertyId || '',
       validUntil: validUntilDate,
       gstTreatment: q.gstTreatment || 'GST',
-      taxType: q.taxType || 'CGST+SGST',
+      taxType: q.taxType || activeTaxes.join('+') || 'CGST+SGST',
+      selectedTaxes: activeTaxes,
+      cgstRate: Number(q.cgstRate ?? 9),
+      sgstRate: Number(q.sgstRate ?? 9),
+      igstRate: Number(q.igstRate ?? 18),
       terms: q.terms || '',
       notes: q.notes || '',
       lines: q.lines?.length
@@ -413,7 +433,7 @@ export function QuotationsPage() {
               <Label>Valid until</Label>
               <Input required type="date" value={form.validUntil} onChange={(e) => set('validUntil', e.target.value)} />
             </div>
-            <div className="grid gap-1.5">
+            <div className="grid gap-1.5 sm:col-span-2">
               <Label>Tax treatment</Label>
               <Select value={form.gstTreatment} onValueChange={(v) => set('gstTreatment', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -423,17 +443,87 @@ export function QuotationsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-1.5">
-              <Label>Tax type</Label>
-              <Select value={form.taxType} onValueChange={(v) => set('taxType', v)} disabled={form.gstTreatment !== 'GST'}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CGST+SGST">CGST+SGST</SelectItem>
-                  <SelectItem value="IGST">IGST</SelectItem>
-                  <SelectItem value="Exempt">Exempt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
+            {form.gstTreatment === 'GST' && (
+              <div className="grid gap-3 sm:col-span-2 rounded-xl border border-border p-4 bg-muted/20">
+                <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  GST Tax Breakdown Setup (Check all taxes that apply & set percentage %)
+                </Label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {[
+                    { key: 'CGST', label: 'CGST (Central Tax)', rateKey: 'cgstRate', defaultRate: 9 },
+                    { key: 'SGST', label: 'SGST (State Tax)', rateKey: 'sgstRate', defaultRate: 9 },
+                    { key: 'IGST', label: 'IGST (Integrated Tax)', rateKey: 'igstRate', defaultRate: 18 },
+                  ].map((taxItem) => {
+                    const isChecked = form.selectedTaxes?.includes(taxItem.key);
+                    return (
+                      <div
+                        key={taxItem.key}
+                        className={`flex flex-col gap-2 rounded-lg border p-3 transition-colors ${
+                          isChecked ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'
+                        }`}
+                      >
+                        <label className="flex items-center gap-2 cursor-pointer font-bold text-sm select-none">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const nextTaxes = e.target.checked
+                                ? [...(form.selectedTaxes || []), taxItem.key]
+                                : (form.selectedTaxes || []).filter((t) => t !== taxItem.key);
+                              
+                              const nextCgst = taxItem.key === 'CGST' ? (e.target.checked ? (form.cgstRate ?? 9) : 0) : (nextTaxes.includes('CGST') ? (form.cgstRate ?? 9) : 0);
+                              const nextSgst = taxItem.key === 'SGST' ? (e.target.checked ? (form.sgstRate ?? 9) : 0) : (nextTaxes.includes('SGST') ? (form.sgstRate ?? 9) : 0);
+                              const nextIgst = taxItem.key === 'IGST' ? (e.target.checked ? (form.igstRate ?? 18) : 0) : (nextTaxes.includes('IGST') ? (form.igstRate ?? 18) : 0);
+                              const combinedRate = nextTaxes.includes('IGST') ? nextIgst : (nextCgst + nextSgst);
+
+                              setForm({
+                                ...form,
+                                selectedTaxes: nextTaxes,
+                                taxType: nextTaxes.join('+') || 'Exempt',
+                                lines: form.lines.map((l) => ({ ...l, taxRate: combinedRate })),
+                              });
+                            }}
+                          />
+                          <span>{taxItem.key}</span>
+                        </label>
+                        {isChecked && (
+                          <div className="grid gap-1 mt-1">
+                            <span className="text-[11px] font-medium text-muted-foreground">{taxItem.label} %</span>
+                            <div className="relative flex items-center">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.5"
+                                className="h-8 text-xs pr-6 font-semibold"
+                                value={form[taxItem.rateKey] ?? taxItem.defaultRate}
+                                onChange={(e) => {
+                                  const newRate = Number(e.target.value);
+                                  const updatedForm = { ...form, [taxItem.rateKey]: newRate };
+                                  
+                                  const cgst = updatedForm.selectedTaxes?.includes('CGST') ? updatedForm.cgstRate : 0;
+                                  const sgst = updatedForm.selectedTaxes?.includes('SGST') ? updatedForm.sgstRate : 0;
+                                  const igst = updatedForm.selectedTaxes?.includes('IGST') ? updatedForm.igstRate : 0;
+                                  const combinedRate = updatedForm.selectedTaxes?.includes('IGST') ? igst : (cgst + sgst);
+
+                                  setForm({
+                                    ...updatedForm,
+                                    lines: updatedForm.lines.map((l) => ({ ...l, taxRate: combinedRate })),
+                                  });
+                                }}
+                              />
+                              <span className="absolute right-2 text-xs font-bold text-muted-foreground">%</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-3 sm:col-span-2">
               <div className="flex items-center justify-between">
@@ -622,10 +712,34 @@ function QuotationDocument({ quotation }) {
   const branch = quotation.branchId || {};
   const customer = quotation.customerId || {};
   const isGst = quotation.gstTreatment === 'GST';
-  const showSplitTax = isGst && quotation.taxType === 'CGST+SGST';
-  const halfTax = Number(quotation.taxTotal || 0) / 2;
-  const halfRate = quotation.lines?.[0]?.taxRate ? quotation.lines[0].taxRate / 2 : 9;
+
+  const activeTaxes = Array.isArray(quotation.selectedTaxes) && quotation.selectedTaxes.length
+    ? quotation.selectedTaxes
+    : quotation.taxType === 'IGST'
+    ? ['IGST']
+    : quotation.taxType === 'Exempt'
+    ? []
+    : ['CGST', 'SGST'];
+
+  const cgstRate = Number(quotation.cgstRate ?? 9);
+  const sgstRate = Number(quotation.sgstRate ?? 9);
+  const igstRate = Number(quotation.igstRate ?? 18);
+
+  const totalTaxPercentage = activeTaxes.reduce((sum, tax) => {
+    if (tax === 'CGST') return sum + cgstRate;
+    if (tax === 'SGST') return sum + sgstRate;
+    if (tax === 'IGST') return sum + igstRate;
+    return sum;
+  }, 0);
+
   const totalQty = quotation.lines.reduce((a, l) => a + Number(l.quantity || 0), 0);
+  const taxableAmount = Number(quotation.subtotal - (quotation.discountTotal || 0));
+
+  const getTaxShare = (rate) => {
+    if (totalTaxPercentage <= 0) return 0;
+    return (Number(quotation.taxTotal || 0) * rate) / totalTaxPercentage;
+  };
+
   const customerAddress = [
     customer.billingAddress?.line1,
     customer.billingAddress?.line2,
@@ -745,15 +859,16 @@ function QuotationDocument({ quotation }) {
 
         <div className='quote-doc-summary-box'>
           <div className='quote-doc-totals'>
-            <span>Taxable Amount <strong>₹{Number(quotation.subtotal - (quotation.discountTotal || 0)).toLocaleString('en-IN')}</strong></span>
-            {showSplitTax ? (
-              <>
-                <span>CGST {halfRate}% <strong>₹{halfTax.toLocaleString('en-IN')}</strong></span>
-                <span>SGST {halfRate}% <strong>₹{halfTax.toLocaleString('en-IN')}</strong></span>
-              </>
-            ) : isGst ? (
-              <span>{quotation.taxType} <strong>₹{Number(quotation.taxTotal).toLocaleString('en-IN')}</strong></span>
-            ) : null}
+            <span>Taxable Amount <strong>₹{taxableAmount.toLocaleString('en-IN')}</strong></span>
+            {isGst && activeTaxes.map((tax) => {
+              const rate = tax === 'CGST' ? cgstRate : tax === 'SGST' ? sgstRate : igstRate;
+              const shareAmount = getTaxShare(rate);
+              return (
+                <span key={tax}>
+                  {tax} {rate}% <strong>₹{shareAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </span>
+              );
+            })}
             <span className='grand'>Total <strong>₹{Number(quotation.grandTotal).toLocaleString('en-IN')}</strong></span>
           </div>
         </div>
