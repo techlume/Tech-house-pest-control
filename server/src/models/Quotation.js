@@ -46,6 +46,7 @@ const schema = new mongoose.Schema(
     grandTotal: { type: Number, default: 0 },
     terms: String,
     notes: String,
+    signatureUrl: String,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },

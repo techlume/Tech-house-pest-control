@@ -60,6 +60,7 @@ const initial = {
   cgstRate: 9,
   sgstRate: 9,
   igstRate: 18,
+  signatureUrl: '',
   lines: [blankLine()],
   notes: '',
   terms: 'This quotation is valid only for the specified period (15 days).\nA 50% advance payment must be made before the treatment begins.',
@@ -167,6 +168,7 @@ export function QuotationsPage() {
       cgstRate: Number(form.cgstRate ?? 9),
       sgstRate: Number(form.sgstRate ?? 9),
       igstRate: Number(form.igstRate ?? 18),
+      signatureUrl: form.signatureUrl || undefined,
       terms: form.terms,
       notes: form.notes,
       lines: form.lines.map((line) => ({
@@ -222,6 +224,7 @@ export function QuotationsPage() {
       cgstRate: Number(q.cgstRate ?? 9),
       sgstRate: Number(q.sgstRate ?? 9),
       igstRate: Number(q.igstRate ?? 18),
+      signatureUrl: q.signatureUrl || '',
       terms: q.terms || '',
       notes: q.notes || '',
       lines: q.lines?.length
@@ -568,6 +571,34 @@ export function QuotationsPage() {
             </div>
 
             <div className="grid gap-1.5 sm:col-span-2">
+              <Label>Authorized Signature Image (Optional)</Label>
+              {form.signatureUrl ? (
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border p-3 bg-muted/20">
+                  <img src={form.signatureUrl} alt="Signature preview" className="h-12 max-w-[180px] object-contain border border-border bg-white rounded p-1" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => set('signatureUrl', '')}>
+                    Remove signature
+                  </Button>
+                </div>
+              ) : (
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > MAX_ITEM_IMAGE_BYTES) {
+                        await appAlert('Signature file is too large — please use an image under 1.2MB.');
+                        return;
+                      }
+                      const dataUrl = await readImageFile(file);
+                      set('signatureUrl', dataUrl);
+                    }
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="grid gap-1.5 sm:col-span-2">
               <Label>Notes (internal / customer-facing)</Label>
               <Textarea rows="2" placeholder="e.g. Site inspection completed on 12 Aug 2026" value={form.notes} onChange={(e) => set('notes', e.target.value)} />
             </div>
@@ -884,6 +915,9 @@ function QuotationDocument({ quotation }) {
               <td className='sign-cell'>
                 <div className='quote-doc-sign-content'>
                   <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
+                  {quotation.signatureUrl ? (
+                    <img src={quotation.signatureUrl} alt="Authorized Signature" className="quote-doc-signature-img" />
+                  ) : null}
                   <span>Authorized Signatory</span>
                 </div>
               </td>
