@@ -243,7 +243,20 @@ router.patch(
       const computed = totals(req.body);
       Object.assign(quotation, computed);
     }
-    const fields = ['validUntil', 'gstTreatment', 'taxType', 'notes', 'terms', 'propertyId', 'customerId', 'branchId'];
+    const fields = [
+      'validUntil',
+      'gstTreatment',
+      'taxType',
+      'selectedTaxes',
+      'cgstRate',
+      'sgstRate',
+      'igstRate',
+      'notes',
+      'terms',
+      'propertyId',
+      'customerId',
+      'branchId',
+    ];
     Object.assign(quotation, pick(req.body, fields), { updatedBy: req.auth.userId });
     await quotation.save();
     res.json({ quotation });
