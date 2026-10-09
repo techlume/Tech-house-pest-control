@@ -14,6 +14,7 @@ import { AppError } from '../utils/AppError.js';
 import { assertTransition } from '../utils/workflow.js';
 import { sendDocumentEmail } from '../services/documentEmailService.js';
 import { assertValidLineImages, calculateInvoice } from '../utils/billing.js';
+import { pick } from '../utils/pick.js';
 
 const router = Router();
 const editors = [ROLES.ADMIN];
@@ -242,7 +243,7 @@ router.patch(
       const computed = totals(req.body);
       Object.assign(quotation, computed);
     }
-    const fields = ['validUntil', 'gstTreatment', 'taxType', 'notes', 'terms', 'propertyId'];
+    const fields = ['validUntil', 'gstTreatment', 'taxType', 'notes', 'terms', 'propertyId', 'customerId', 'branchId'];
     Object.assign(quotation, pick(req.body, fields), { updatedBy: req.auth.userId });
     await quotation.save();
     res.json({ quotation });
