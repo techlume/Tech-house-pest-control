@@ -647,146 +647,155 @@ function QuotationDocument({ quotation }) {
   const termsList = terms.length ? terms : DEFAULT_TERMS;
 
   return (
-    <article className='quote-document'>
-      <div className='quote-doc-kicker'>
-        <span>QUOTATION</span>
-        <span>ORIGINAL FOR RECIPIENT</span>
-      </div>
-
-      <table className='quote-doc-headtable'>
-        <tbody>
-          <tr>
-            <td className='quote-doc-brand-cell' rowSpan={2}>
-              <div className='quote-doc-brand'>
-                <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
-                <div>
-                  <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
-                  {isGst && <p><strong>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</strong></p>}
-                  <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
-                  <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
-                  <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
-                </div>
-              </div>
-            </td>
-            <td className='quote-doc-meta-cell'>
-              <span>Quotation #:</span>
-              <strong>{quotation.quotationNo}</strong>
-            </td>
-            <td className='quote-doc-meta-cell'>
-              <span>Quotation Date:</span>
-              <strong>{new Date(quotation.issueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
-            </td>
-          </tr>
-          <tr>
-            <td className='quote-doc-meta-cell'>
-              <span>Place of Supply:</span>
-              <strong>{customer.billingAddress?.state || 'Tamil Nadu'}</strong>
-            </td>
-            <td className='quote-doc-meta-cell'>
-              <span>Validity:</span>
-              <strong>{new Date(quotation.validUntil).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <section className='quote-doc-customer'>
-        <span>Customer Details:</span>
-        <strong>{customer.name}</strong>
-        {customer.gstin && <span>GSTIN: {customer.gstin}</span>}
-        <span className='quote-doc-billing-label'>Billing Address:</span>
-        <span>{customerAddress.join(', ') || 'Not provided'}</span>
-      </section>
-
-      <table className='quote-doc-table'>
-        <thead>
-          <tr>
-            <th>#</th><th>Item</th><th>HSN/SAC</th><th>Rate / Item</th><th>Qty</th><th>Taxable Value</th><th>Tax Amount</th><th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {quotation.lines.map((line, idx) => {
-            const base = Number(line.quantity || 1) * Number(line.rate || 0);
-            const discount = Math.min(Number(line.discount || 0), base);
-            const taxableValue = base - discount;
-            const taxAmount = Number(line.lineTotal) - taxableValue;
-            return (
-              <tr key={line._id || idx}>
-                <td>{idx + 1}</td>
-                <td>
-                  <strong className='quote-doc-item-heading'>{line.serviceName}</strong>
-                  {line.subheading && <div className='quote-doc-item-subheading'>{line.subheading}</div>}
-                  {line.description && <p className='quote-doc-item-desc'>{line.description}</p>}
-                  {line.imageUrl && <img src={line.imageUrl} alt='' className='quote-doc-item-image' />}
-                </td>
-                <td>998531</td>
-                <td>₹{Number(line.rate).toLocaleString('en-IN')}</td>
-                <td>{line.quantity}</td>
-                <td>₹{taxableValue.toLocaleString('en-IN')}</td>
-                <td>{isGst ? `₹${taxAmount.toLocaleString('en-IN')} (${line.taxRate}%)` : '—'}</td>
-                <td>₹{Number(line.lineTotal).toLocaleString('en-IN')}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <div className='quote-doc-qty-bar'>
-        Total Items / Qty : {quotation.lines.length} / {totalQty}
-      </div>
-
-      <div className='quote-doc-summary-box'>
-        <div className='quote-doc-totals'>
-          <span>Taxable Amount <strong>₹{Number(quotation.subtotal - (quotation.discountTotal || 0)).toLocaleString('en-IN')}</strong></span>
-          {showSplitTax ? (
-            <>
-              <span>CGST {halfRate}% <strong>₹{halfTax.toLocaleString('en-IN')}</strong></span>
-              <span>SGST {halfRate}% <strong>₹{halfTax.toLocaleString('en-IN')}</strong></span>
-            </>
-          ) : isGst ? (
-            <span>{quotation.taxType} <strong>₹{Number(quotation.taxTotal).toLocaleString('en-IN')}</strong></span>
-          ) : null}
-          <span className='grand'>Total <strong>₹{Number(quotation.grandTotal).toLocaleString('en-IN')}</strong></span>
+    <div className='quote-document-container'>
+      <article className='quote-document'>
+        <div className='quote-doc-kicker'>
+          <span>QUOTATION</span>
+          <span>ORIGINAL FOR RECIPIENT</span>
         </div>
-      </div>
 
-      <div className='quote-doc-words-bar'>
-        Total amount (in words): {amountInWordsRupees(quotation.grandTotal)}
-      </div>
+        <table className='quote-doc-headtable'>
+          <tbody>
+            <tr>
+              <td className='quote-doc-brand-cell' rowSpan={2}>
+                <div className='quote-doc-brand'>
+                  <img src='/tech-house-logo.png' alt='Tech House Pest Control logo' className='quote-doc-logo' />
+                  <div>
+                    <h2>{seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</h2>
+                    {isGst && <p><strong>GSTIN: {branch.gstin || seller.gstin || COMPANY_DEFAULTS.gstin}</strong></p>}
+                    <p>{branchAddress.join(', ') || COMPANY_DEFAULTS.addressLine}</p>
+                    <p>Mobile: {branch.phone || seller.phone || COMPANY_DEFAULTS.phone}</p>
+                    <p>Email: {branch.email || seller.email || COMPANY_DEFAULTS.email}</p>
+                  </div>
+                </div>
+              </td>
+              <td className='quote-doc-meta-cell'>
+                <span>Quotation #:</span>
+                <strong>{quotation.quotationNo}</strong>
+              </td>
+              <td className='quote-doc-meta-cell'>
+                <span>Quotation Date:</span>
+                <strong>{new Date(quotation.issueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+              </td>
+            </tr>
+            <tr>
+              <td className='quote-doc-meta-cell'>
+                <span>Place of Supply:</span>
+                <strong>{customer.billingAddress?.state || 'Tamil Nadu'}</strong>
+              </td>
+              <td className='quote-doc-meta-cell'>
+                <span>Validity:</span>
+                <strong>{new Date(quotation.validUntil).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-      <table className='quote-doc-sign-grid'>
-        <tbody>
-          <tr>
-            <td></td>
-            <td className='sign-cell'>
-              <div className='quote-doc-sign-content'>
-                <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
-                <span>Authorized Signatory</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <section className='quote-doc-customer'>
+          <span>Customer Details:</span>
+          <strong>{customer.name}</strong>
+          {customer.gstin && <span>GSTIN: {customer.gstin}</span>}
+          <span className='quote-doc-billing-label'>Billing Address:</span>
+          <span>{customerAddress.join(', ') || 'Not provided'}</span>
+        </section>
 
-      <table className='quote-doc-notesrow'>
-        <tbody>
-          <tr>
-            <td>
-              <h4>Notes:</h4>
-              <p>{quotation.notes || '—'}</p>
-            </td>
-            <td>
-              <h4>Terms and Conditions:</h4>
-              {termsList.map((t, i) => <p key={i}>{t}</p>)}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+        <table className='quote-doc-table'>
+          <thead>
+            <tr>
+              <th className='text-center'>#</th>
+              <th>Item</th>
+              <th className='text-center'>HSN/SAC</th>
+              <th className='text-right'>Rate / Item</th>
+              <th className='text-center'>Qty</th>
+              <th className='text-right'>Taxable Value</th>
+              <th className='text-right'>Tax Amount</th>
+              <th className='text-right'>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quotation.lines.map((line, idx) => {
+              const base = Number(line.quantity || 1) * Number(line.rate || 0);
+              const discount = Math.min(Number(line.discount || 0), base);
+              const taxableValue = base - discount;
+              const taxAmount = Number(line.lineTotal) - taxableValue;
+              return (
+                <tr key={line._id || idx}>
+                  <td className='text-center'>{idx + 1}</td>
+                  <td>
+                    <strong className='quote-doc-item-heading'>{line.serviceName}</strong>
+                    {line.subheading && <div className='quote-doc-item-subheading'>{line.subheading}</div>}
+                    {line.description && <p className='quote-doc-item-desc'>{line.description}</p>}
+                    {line.imageUrl && <img src={line.imageUrl} alt='' className='quote-doc-item-image' />}
+                  </td>
+                  <td className='text-center'>998531</td>
+                  <td className='text-right'>₹{Number(line.rate).toLocaleString('en-IN')}</td>
+                  <td className='text-center'>{line.quantity}</td>
+                  <td className='text-right'>₹{taxableValue.toLocaleString('en-IN')}</td>
+                  <td className='text-right'>{isGst ? `₹${taxAmount.toLocaleString('en-IN')} (${line.taxRate}%)` : '—'}</td>
+                  <td className='text-right'>₹{Number(line.lineTotal).toLocaleString('en-IN')}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
 
-      <footer className='quote-doc-footer-bar'>
-        <span>Page 1 / 1 • {quotation.quotationNo} • This is a computer generated document and requires no signature.</span>
-        <span>Powered By Tech House Pest Control</span>
-      </footer>
-    </article>
+        <div className='quote-doc-qty-bar'>
+          Total Items / Qty : {quotation.lines.length} / {totalQty}
+        </div>
+
+        <div className='quote-doc-summary-box'>
+          <div className='quote-doc-totals'>
+            <span>Taxable Amount <strong>₹{Number(quotation.subtotal - (quotation.discountTotal || 0)).toLocaleString('en-IN')}</strong></span>
+            {showSplitTax ? (
+              <>
+                <span>CGST {halfRate}% <strong>₹{halfTax.toLocaleString('en-IN')}</strong></span>
+                <span>SGST {halfRate}% <strong>₹{halfTax.toLocaleString('en-IN')}</strong></span>
+              </>
+            ) : isGst ? (
+              <span>{quotation.taxType} <strong>₹{Number(quotation.taxTotal).toLocaleString('en-IN')}</strong></span>
+            ) : null}
+            <span className='grand'>Total <strong>₹{Number(quotation.grandTotal).toLocaleString('en-IN')}</strong></span>
+          </div>
+        </div>
+
+        <div className='quote-doc-words-bar'>
+          Total amount (in words): {amountInWordsRupees(quotation.grandTotal)}
+        </div>
+
+        <table className='quote-doc-sign-grid'>
+          <tbody>
+            <tr>
+              <td></td>
+              <td className='sign-cell'>
+                <div className='quote-doc-sign-content'>
+                  <span>For {seller.legalName || seller.name || COMPANY_DEFAULTS.legalName}</span>
+                  <span>Authorized Signatory</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table className='quote-doc-notesrow'>
+          <tbody>
+            <tr>
+              <td>
+                <h4>Notes:</h4>
+                <p>{quotation.notes || '—'}</p>
+              </td>
+              <td>
+                <h4>Terms and Conditions:</h4>
+                {termsList.map((t, i) => <p key={i}>{t}</p>)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <footer className='quote-doc-footer-bar'>
+          <span>Page 1 / 1 • {quotation.quotationNo} • This is a computer generated document and requires no signature.</span>
+          <span>Powered By Tech House Pest Control</span>
+        </footer>
+      </article>
+    </div>
   );
 }
